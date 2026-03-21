@@ -1,0 +1,338 @@
+{# SPDX-FileCopyrightText: © Fossology contributors
+   SPDX-License-Identifier: GPL-2.0-only
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ 'Enhanced Reuse Analysis'|trans }} — {{ uploadFilename|e }}</title>
+  <link rel="stylesheet" href="css/bootstrap.css"/>
+  <link rel="stylesheet" href="css/fossology.css"/>
+  <script src="scripts/jquery.js"></script>
+  {# Chart.js loaded from CDN for histogram rendering #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Status badges for the diff-tree table ─────────────────────────── */
+    .er-badge-identical        { background:#6c757d; color:#fff; }
+    .er-badge-new              { background:#28a745; color:#fff; }
+    .er-badge-deleted          { background:#dc3545; color:#fff; }
+    .er-badge-modified_minor   { background:#17a2b8; color:#fff; }
+    .er-badge-modified_major   { background:#fd7e14; color:#fff; }
+    .er-badge-modified_comment_only { background:#007bff; color:#fff; }
+
+    /* ── Row colour coding in the diff tree ──────────────────────────────── */
+    .er-row-new              { background:#f0fff4; }
+    .er-row-deleted          { background:#fff5f5; }
+    .er-row-modified_minor   { background:#e8f8fb; }
+    .er-row-modified_major   { background:#fff8f0; }
+    .er-row-modified_comment_only { background:#f0f6ff; }
+
+    /* ── Risk level ──────────────────────────────────────────────────────── */
+    .er-risk-high   { color:#dc3545; font-weight:bold; }
+    .er-risk-medium { color:#fd7e14; font-weight:bold; }
+    .er-risk-low    { color:#28a745; font-weight:bold; }
+
+    /* ── Misc ─────────────────────────────────────────────────────────── */
+    .er-stat-card  { text-align:center; padding:1rem; }
+    .er-stat-value { font-size:2.2rem; font-weight:bold; }
+    .er-chart-wrap { position:relative; height:320px; }
+    .er-section    { margin-bottom:2rem; }
+    #erDiffTable   { font-size:.85rem; }
+    .er-filter-btn.active { box-shadow:inset 0 0 0 2px #343a40; }
+    .er-suggestions-list .list-group-item { font-size:.85rem; }
+    .er-score-pill {
+      display:inline-block; padding:1px 7px; border-radius:999px;
+      background:#343a40; color:#fff; font-size:.75rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid mt-3">
+
+  {# ── Header ─────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="mb-0">
+        {{ 'Enhanced Reuse Analysis'|trans }}
+        <small class="text-muted">— {{ uploadFilename|e }}</small>
+      </h4>
+      {% if hasReuseContext %}
+        <small class="text-muted">
+          {{ 'Comparing against'|trans }}:
+          <strong>{{ reusedFilename|e }}</strong>
+          ({{ 'upload'|trans }} #{{ reusedUploadId }})
+        </small>
+      {% else %}
+        <div class="alert alert-warning mt-2 py-1">
+          {{ 'No reuse upload is configured for this upload. Set one via the Reuser agent.'|trans }}
+        </div>
+      {% endif %}
+    </div>
+    <div>
+      {% if hasReuseContext %}
+        <button id="erRefreshBtn" class="btn btn-sm btn-outline-primary">
+          ⟳ {{ 'Refresh Analysis'|trans }}
+        </button>
+      {% endif %}
+      <a href="?mod=browse&upload={{ uploadId }}" class="btn btn-sm btn-outline-secondary ml-1">
+        ← {{ 'Back to Browse'|trans }}
+      </a>
+    </div>
+  </div>
+
+  {% if hasReuseContext %}
+
+  {# ── Loading spinner (shown while AJAX loads) ────────────────────────── #}
+  <div id="erLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">{{ 'Loading analysis…'|trans }}</p>
+  </div>
+
+  {# ── Main content (hidden until data loaded) ─────────────────────────── #}
+  <div id="erContent" style="display:none;">
+
+    {# ── Statistics row ──────────────────────────────────────────────── #}
+    <div class="row er-section" id="erStatsRow">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>{{ 'Overview Statistics'|trans }}</strong>
+            <span id="erRiskBadge" class="badge badge-secondary px-3 py-2" style="font-size:.9rem;"></span>
+          </div>
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-secondary" id="erStatTotal">—</div>
+                <div class="text-muted">{{ 'Total Files'|trans }}</div>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-secondary" id="erStatIdentical">—</div>
+                <div class="text-muted">{{ 'Identical'|trans }}</div>
+                <small class="text-muted" id="erStatIdenticalPct"></small>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-info" id="erStatModified">—</div>
+                <div class="text-muted">{{ 'Modified'|trans }}</div>
+                <small class="text-muted" id="erStatModifiedPct"></small>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-success" id="erStatNew">—</div>
+                <div class="text-muted">{{ 'New'|trans }}</div>
+                <small class="text-muted" id="erStatNewPct"></small>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-danger" id="erStatDeleted">—</div>
+                <div class="text-muted">{{ 'Deleted'|trans }}</div>
+                <small class="text-muted" id="erStatDeletedPct"></small>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-warning" id="erStatLinesAdded">—</div>
+                <div class="text-muted">{{ 'Lines +'|trans }}</div>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value text-danger" id="erStatLinesRemoved">—</div>
+                <div class="text-muted">{{ 'Lines −'|trans }}</div>
+              </div>
+              <div class="col er-stat-card">
+                <div class="er-stat-value" id="erStatPctNewLic">—</div>
+                <div class="text-muted">{{ '% New Licenses'|trans }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Two-column: Histogram + Suggestions ─────────────────────────── #}
+    <div class="row er-section">
+
+      {# License Histogram #}
+      <div class="col-md-8">
+        <div class="card h-100">
+          <div class="card-header">
+            <strong>{{ 'License Histogram: v1 vs v2'|trans }}</strong>
+            <small class="text-muted ml-2">
+              🟢 {{ 'Added'|trans }} &nbsp;
+              🔴 {{ 'Removed'|trans }} &nbsp;
+              🟠 {{ 'Changed'|trans }} &nbsp;
+              ⬛ {{ 'Unchanged'|trans }}
+            </small>
+          </div>
+          <div class="card-body">
+            <div class="er-chart-wrap">
+              <canvas id="erLicenseChart"></canvas>
+            </div>
+            <div id="erHistogramEmpty" class="text-center text-muted py-3" style="display:none;">
+              {{ 'No license data available.'|trans }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Smart Suggestions #}
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header">
+            <strong>{{ 'Smart Reuse Suggestions'|trans }}</strong>
+            <img src="images/info_16.png" data-toggle="tooltip"
+                 title="{{ 'Uploads ranked by filename similarity. Higher score = better match.'|trans }}"
+                 alt="" class="info-bullet ml-1"/>
+          </div>
+          <div class="card-body p-2">
+            <div id="erSuggestionsLoading" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+            <ul id="erSuggestionsList" class="list-group list-group-flush er-suggestions-list"
+                style="display:none; max-height:280px; overflow-y:auto;"></ul>
+            <div id="erSuggestionsEmpty" class="text-center text-muted small py-3" style="display:none;">
+              {{ 'No similar cleared uploads found.'|trans }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Diff Tree ─────────────────────────────────────────────────────── #}
+    <div class="row er-section">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <strong>{{ 'Diff Tree View'|trans }}</strong>
+            <div>
+              {# Filter buttons #}
+              <button class="btn btn-sm btn-outline-secondary er-filter-btn active" data-filter="all">
+                {{ 'All'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-success er-filter-btn" data-filter="new">
+                {{ 'New'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-danger er-filter-btn" data-filter="deleted">
+                {{ 'Deleted'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-info er-filter-btn" data-filter="modified_minor">
+                {{ 'Minor'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-warning er-filter-btn" data-filter="modified_major">
+                {{ 'Major'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-primary er-filter-btn" data-filter="modified_comment_only">
+                {{ 'Comment Only'|trans }}
+              </button>
+              <button class="btn btn-sm btn-outline-secondary er-filter-btn" data-filter="identical">
+                {{ 'Identical'|trans }}
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div id="erDiffTableLoading" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+            <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+              <table class="table table-sm table-bordered mb-0" id="erDiffTable" style="display:none;">
+                <thead class="thead-light">
+                  <tr>
+                    <th>{{ 'File'|trans }}</th>
+                    <th>{{ 'Status'|trans }}</th>
+                    <th title="{{ 'Lines added'|trans }}">+</th>
+                    <th title="{{ 'Lines removed'|trans }}">−</th>
+                    <th title="{{ 'Comment lines changed'|trans }}">💬</th>
+                    <th title="{{ 'Code lines changed'|trans }}">⟨/⟩</th>
+                    <th>{{ 'License'|trans }}</th>
+                    <th>{{ 'v1 Decision'|trans }}</th>
+                    <th>{{ 'Actions'|trans }}</th>
+                  </tr>
+                </thead>
+                <tbody id="erDiffTableBody"></tbody>
+              </table>
+            </div>
+            <div id="erDiffEmpty" class="text-center text-muted py-4" style="display:none;">
+              {{ 'No files found.'|trans }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Bulk Decision Panel ────────────────────────────────────────── #}
+    <div class="row er-section">
+      <div class="col-12">
+        <div class="card border-primary">
+          <div class="card-header bg-primary text-white">
+            <strong>{{ 'Bulk Decision'|trans }}</strong>
+            <img src="images/info_16.png" data-toggle="tooltip"
+                 title="{{ 'Apply a decision to all files matching the selected scope'|trans }}"
+                 alt="" class="info-bullet ml-1"/>
+          </div>
+          <div class="card-body">
+            <div class="form-row align-items-end">
+              <div class="col-md-4 form-group mb-0">
+                <label for="erBulkScope"><strong>{{ 'Scope'|trans }}</strong></label>
+                <select id="erBulkScope" class="form-control form-control-sm">
+                  <option value="identical_files">{{ 'Identical files (hash match)'|trans }}</option>
+                  <option value="comment_only_files">{{ 'Comment-only changed files'|trans }}</option>
+                  <option value="changed_files">{{ 'All modified files (minor + major + comment)'|trans }}</option>
+                  <option value="new_files">{{ 'New files (not in v1)'|trans }}</option>
+                </select>
+              </div>
+              <div class="col-md-4 form-group mb-0">
+                <label for="erBulkAction"><strong>{{ 'Action'|trans }}</strong></label>
+                <select id="erBulkAction" class="form-control form-control-sm">
+                  <option value="reuse">{{ 'Reuse decision from v1'|trans }}</option>
+                  <option value="tbd">{{ 'Mark as To Be Discussed'|trans }}</option>
+                  <option value="skip">{{ 'Skip (no decision)'|trans }}</option>
+                </select>
+              </div>
+              <div class="col-md-4 form-group mb-0">
+                <button id="erBulkApply" class="btn btn-primary btn-sm w-100">
+                  {{ 'Apply Bulk Decision'|trans }}
+                </button>
+              </div>
+            </div>
+            <div id="erBulkResult" class="mt-2" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# /erContent #}
+
+  {% else %}
+  {# No reuse context — show suggestion panel only #}
+  <div class="row">
+    <div class="col-md-6 offset-md-3">
+      <div class="card">
+        <div class="card-header"><strong>{{ 'Smart Reuse Suggestions'|trans }}</strong></div>
+        <div class="card-body">
+          <p class="text-muted">
+            {{ 'The following uploads are similar to this one and may be good candidates for reuse:'|trans }}
+          </p>
+          <div id="erSuggestionsLoading" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-secondary"></div>
+          </div>
+          <ul id="erSuggestionsList" class="list-group list-group-flush er-suggestions-list"
+              style="display:none;"></ul>
+          <div id="erSuggestionsEmpty" class="text-center text-muted small py-3" style="display:none;">
+            {{ 'No similar uploads found.'|trans }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>{# /container-fluid #}
+
+{# Pass server-side data to JS #}
+<script>
+window.erConfig = {
+  uploadId:       {{ uploadId }},
+  reusedUploadId: {{ reusedUploadId }},
+  hasReuseContext: {{ hasReuseContext ? 'true' : 'false' }},
+  apiBase:        '?mod=repo&apiCall=1&action='
+};
+</script>
+{% include 'enhanced_reuser.js.twig' %}
+
+</body>
+</html>

@@ -1,0 +1,346 @@
+{# SPDX-FileCopyrightText: © Fossology contributors
+   SPDX-License-Identifier: GPL-2.0-only
+#}
+<script>
+(function ($) {
+  'use strict';
+
+  /* ── Configuration ──────────────────────────────────────────────────── */
+  const cfg          = window.erConfig;
+  const uploadId     = cfg.uploadId;
+  const reusedId     = cfg.reusedUploadId;
+  const hasContext   = cfg.hasReuseContext;
+
+  /* REST API base URL for Enhanced Reuse endpoints */
+  const API = '/repo/api/v2/uploads/' + uploadId + '/enhanced-reuse';
+
+  /* Auth token storage key (FOSSology uses JWT in sessionStorage) */
+  function getAuthHeader() {
+    const token = sessionStorage.getItem('fossology-token') || '';
+    return token ? { 'Authorization': 'Bearer ' + token } : {};
+  }
+
+  /* ── Status labels & colours ─────────────────────────────────────────── */
+  const STATUS_LABEL = {
+    'identical':             'Identical',
+    'new':                   'New',
+    'deleted':               'Deleted',
+    'modified_minor':        'Minor',
+    'modified_major':        'Major',
+    'modified_comment_only': 'Comment Only',
+  };
+
+  const LICENSE_STATUS_LABEL = {
+    'unknown':         '—',
+    'unchanged':       'Unchanged',
+    'license_added':   '⚠ Added',
+    'license_removed': 'Removed',
+    'license_changed': '⚠ Changed',
+    'deleted':         '—',
+    'new':             '—',
+  };
+
+  const LICENSE_STATUS_CLASS = {
+    'license_added':   'text-success font-weight-bold',
+    'license_removed': 'text-danger',
+    'license_changed': 'text-warning font-weight-bold',
+    'unchanged':       'text-muted',
+  };
+
+  /* ── Shared state ────────────────────────────────────────────────────── */
+  let _diffTree   = [];
+  let _licChart   = null;
+  let _activeFilter = 'all';
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * Bootstrap: load all data in parallel when the page has a reuse context
+   * ════════════════════════════════════════════════════════════════════════ */
+  $(document).ready(function () {
+
+    // Smart suggestions always loaded regardless of context
+    loadSuggestions();
+
+    if (!hasContext) return;
+
+    const reuseParam = reusedId ? '?reuseUploadId=' + reusedId : '';
+
+    const pStats   = $.ajax({ url: API + '/stats'  + reuseParam, headers: getAuthHeader() });
+    const pLic     = $.ajax({ url: API + '/license-comparison' + reuseParam, headers: getAuthHeader() });
+    const pDiff    = $.ajax({ url: API + '/diff-tree' + reuseParam, headers: getAuthHeader() });
+
+    $.when(pStats, pLic, pDiff).then(
+      function (statsResp, licResp, diffResp) {
+        const stats   = statsResp[0];
+        const licData = licResp[0];
+        const diff    = diffResp[0];
+
+        renderStats(stats);
+        renderHistogram(licData);
+        _diffTree = Array.isArray(diff) ? diff : [];
+        renderDiffTable(_diffTree, _activeFilter);
+
+        $('#erLoading').hide();
+        $('#erContent').show();
+      },
+      function () {
+        $('#erLoading').html(
+          '<div class="alert alert-danger">Failed to load analysis data. ' +
+          'Make sure the Enhanced Reuser agent has run or try refreshing.</div>'
+        );
+      }
+    );
+
+    /* Refresh button */
+    $('#erRefreshBtn').on('click', function () {
+      location.reload();
+    });
+
+    /* Filter buttons */
+    $(document).on('click', '.er-filter-btn', function () {
+      _activeFilter = $(this).data('filter');
+      $('.er-filter-btn').removeClass('active');
+      $(this).addClass('active');
+      renderDiffTable(_diffTree, _activeFilter);
+    });
+
+    /* Bulk decision */
+    $('#erBulkApply').on('click', applyBulkDecision);
+  });
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * renderStats — populate the statistics cards
+   * ════════════════════════════════════════════════════════════════════════ */
+  function renderStats(s) {
+    $('#erStatTotal').text(s.totalFiles);
+    $('#erStatIdentical').text(s.identicalFiles);
+    $('#erStatIdenticalPct').text(s.pctIdentical + '%');
+    $('#erStatModified').text(s.modifiedFiles);
+    $('#erStatModifiedPct').text(s.pctModified + '%');
+    $('#erStatNew').text(s.newFiles);
+    $('#erStatNewPct').text(s.pctNew + '%');
+    $('#erStatDeleted').text(s.deletedFiles);
+    $('#erStatDeletedPct').text(s.pctDeleted + '%');
+    $('#erStatLinesAdded').text('+' + s.totalLinesAdded);
+    $('#erStatLinesRemoved').text('−' + s.totalLinesRemoved);
+    $('#erStatPctNewLic').text(s.pctNewLicenses + '%');
+
+    const risk      = (s.riskLevel || 'low').toLowerCase();
+    const riskLabel = { high:'🔴 HIGH', medium:'🟠 MEDIUM', low:'🟢 LOW' }[risk] || risk.toUpperCase();
+    const riskClass = { high:'badge-danger', medium:'badge-warning', low:'badge-success' }[risk] || 'badge-secondary';
+    $('#erRiskBadge').text('Risk: ' + riskLabel).removeClass().addClass('badge ' + riskClass + ' px-3 py-2');
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * renderHistogram — draw Chart.js grouped bar chart
+   * ════════════════════════════════════════════════════════════════════════ */
+  function renderHistogram(licData) {
+    const comparison = licData.comparison || [];
+    if (!comparison.length) {
+      $('#erHistogramEmpty').show();
+      return;
+    }
+
+    const labels  = comparison.map(function (e) { return e.name; });
+    const v1Vals  = comparison.map(function (e) { return e.v1Count; });
+    const v2Vals  = comparison.map(function (e) { return e.v2Count; });
+
+    /* Border colour per license reflects change status */
+    const statusColour = comparison.map(function (e) { return e.colour || '#6c757d'; });
+
+    if (_licChart) {
+      _licChart.destroy();
+    }
+
+    const ctx = document.getElementById('erLicenseChart');
+    if (!ctx) return;
+
+    _licChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'v1 (old)',
+            data: v1Vals,
+            backgroundColor: 'rgba(108,117,125,0.55)',
+            borderColor:     statusColour,
+            borderWidth:     2,
+          },
+          {
+            label: 'v2 (new)',
+            data: v2Vals,
+            backgroundColor: statusColour.map(function (c) { return hexToRgba(c, 0.55); }),
+            borderColor:     statusColour,
+            borderWidth:     2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              afterTitle: function (items) {
+                const idx = items[0].dataIndex;
+                const s   = comparison[idx];
+                return 'Status: ' + (s.status || '—');
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, minRotation: 30 } },
+          y: { beginAtZero: true, title: { display: true, text: 'File count' } },
+        }
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * renderDiffTable — populate (or filter) the diff tree table
+   * ════════════════════════════════════════════════════════════════════════ */
+  function renderDiffTable(tree, filter) {
+    $('#erDiffTableLoading').hide();
+
+    const filtered = (filter === 'all')
+      ? tree
+      : tree.filter(function (e) { return e.fileStatus === filter; });
+
+    if (!filtered.length) {
+      $('#erDiffTable').hide();
+      $('#erDiffEmpty').show();
+      return;
+    }
+    $('#erDiffEmpty').hide();
+
+    const $tbody = $('#erDiffTableBody').empty();
+    filtered.forEach(function (e) {
+      const statusClass  = 'er-badge-' + (e.fileStatus || 'identical');
+      const rowClass     = 'er-row-' + (e.fileStatus || '');
+      const licClass     = LICENSE_STATUS_CLASS[e.licenseStatus] || '';
+      const licLabel     = LICENSE_STATUS_LABEL[e.licenseStatus] || e.licenseStatus;
+      const hasV1Dec     = e.hasDecisionInV1 ? '✔' : '—';
+      const v2ItemId     = e.v2ItemId;
+
+      const actionLink = (v2ItemId)
+        ? '<a href="?mod=view-license&upload=' + uploadId + '&item=' + v2ItemId +
+          '" class="btn btn-xs btn-outline-secondary" target="_blank">View</a>'
+        : '—';
+
+      $tbody.append(
+        '<tr class="' + rowClass + '">' +
+          '<td class="text-monospace">' + esc(e.fileName) + '</td>' +
+          '<td><span class="badge ' + statusClass + '">' +
+            (STATUS_LABEL[e.fileStatus] || e.fileStatus) + '</span></td>' +
+          '<td class="text-success">' + (e.linesAdded   || 0) + '</td>' +
+          '<td class="text-danger">'  + (e.linesRemoved || 0) + '</td>' +
+          '<td>'                      + (e.commentLinesChanged || 0) + '</td>' +
+          '<td>'                      + (e.codeLinesChanged    || 0) + '</td>' +
+          '<td class="' + licClass + '">' + licLabel + '</td>' +
+          '<td class="text-center">'  + hasV1Dec + '</td>' +
+          '<td>'                      + actionLink + '</td>' +
+        '</tr>'
+      );
+    });
+
+    $('#erDiffTable').show();
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * loadSuggestions — fetch and render smart suggestions
+   * ════════════════════════════════════════════════════════════════════════ */
+  function loadSuggestions() {
+    $.ajax({
+      url:     API + '/suggestions',
+      headers: getAuthHeader(),
+      success: function (data) {
+        $('#erSuggestionsLoading').hide();
+        if (!Array.isArray(data) || !data.length) {
+          $('#erSuggestionsEmpty').show();
+          return;
+        }
+        const $list = $('#erSuggestionsList').empty().show();
+        data.forEach(function (s) {
+          const score     = s.score || 0;
+          const scoreColour = score >= 70 ? '#28a745' : score >= 40 ? '#fd7e14' : '#6c757d';
+          $list.append(
+            '<li class="list-group-item px-2 py-1">' +
+              '<div class="d-flex justify-content-between align-items-center">' +
+                '<span class="text-truncate" style="max-width:180px;" title="' + esc(s.filename) + '">' +
+                  esc(s.filename) + '</span>' +
+                '<span class="er-score-pill" style="background:' + scoreColour + ';">' +
+                  score + '%</span>' +
+              '</div>' +
+              '<small class="text-muted">#' + s.uploadId + ' · ' + esc(s.status) +
+                (s.uploadedAt ? ' · ' + s.uploadedAt.substr(0, 10) : '') + '</small>' +
+              '<br/>' +
+              '<a href="?mod=enhanced_reuser&upload=' + uploadId +
+                '&reuseUploadId=' + s.uploadId +
+                '" class="btn btn-xs btn-outline-primary mt-1">Use this</a>' +
+            '</li>'
+          );
+        });
+      },
+      error: function () {
+        $('#erSuggestionsLoading').hide();
+        $('#erSuggestionsEmpty').show();
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * applyBulkDecision — POST to the /decide endpoint
+   * ════════════════════════════════════════════════════════════════════════ */
+  function applyBulkDecision() {
+    const scope  = $('#erBulkScope').val();
+    const action = $('#erBulkAction').val();
+    const $btn   = $('#erBulkApply');
+    const $res   = $('#erBulkResult');
+
+    if (!confirm('Apply bulk decision?\nScope: ' + scope + '\nAction: ' + action)) return;
+
+    $btn.prop('disabled', true).text('Applying…');
+    $res.hide();
+
+    $.ajax({
+      url:         API + '/decide',
+      method:      'POST',
+      contentType: 'application/json',
+      headers:     getAuthHeader(),
+      data:        JSON.stringify({ reuseUploadId: reusedId, scope: scope, action: action }),
+      success: function (data) {
+        $res.show().removeClass('alert-danger').addClass('alert alert-success')
+          .html('✔ ' + data.message +
+            ' — processed: ' + data.processed +
+            ', skipped: ' + data.skipped);
+      },
+      error: function (xhr) {
+        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : xhr.statusText;
+        $res.show().removeClass('alert-success').addClass('alert alert-danger')
+          .text('Error: ' + msg);
+      },
+      complete: function () {
+        $btn.prop('disabled', false).text('Apply Bulk Decision');
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * Helpers
+   * ════════════════════════════════════════════════════════════════════════ */
+  function esc(str) {
+    return $('<span>').text(str || '').html();
+  }
+
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+})(jQuery);
+</script>

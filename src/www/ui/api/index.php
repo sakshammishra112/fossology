@@ -43,6 +43,7 @@ use Fossology\UI\Api\Controllers\SearchController;
 use Fossology\UI\Api\Controllers\UploadController;
 use Fossology\UI\Api\Controllers\UploadTreeController;
 use Fossology\UI\Api\Controllers\UserController;
+use Fossology\EnhancedReuser\Api\Controllers\EnhancedReuserController;
 use Fossology\UI\Api\Exceptions\HttpErrorException;
 use Fossology\UI\Api\Helper\CorsHelper;
 use Fossology\UI\Api\Helper\ResponseFactoryHelper;
@@ -223,6 +224,12 @@ $app->group('/uploads',
     $app->put('/{id:\\d+}/conf', ConfController::class . ':updateConfData');
     $app->get('/{id:\\d+}/copyrights', UploadController::class . ':getUploadCopyrights');
     $app->post('/{id:\\d+}/osselot/import', OsselotController::class . ':importOsselotReport');
+    ////////////////////////// ENHANCED REUSE ANALYSIS /////////////////////
+    $app->get('/{id:\\d+}/enhanced-reuse/diff-tree', EnhancedReuserController::class . ':getDiffTree');
+    $app->get('/{id:\\d+}/enhanced-reuse/stats', EnhancedReuserController::class . ':getStats');
+    $app->get('/{id:\\d+}/enhanced-reuse/license-comparison', EnhancedReuserController::class . ':getLicenseComparison');
+    $app->get('/{id:\\d+}/enhanced-reuse/suggestions', EnhancedReuserController::class . ':getSuggestions');
+    $app->post('/{id:\\d+}/enhanced-reuse/decide', EnhancedReuserController::class . ':postDecide');
     ////////////////////////// BULK FOR CX OPERATIONS /////////////////////
     $app->group('/{id:\\d+}/item/{itemId:\\d+}', function (\Slim\Routing\RouteCollectorProxy $app) {
       $app->get('/copyrights', CopyrightController::class . ':getFileCopyrights');

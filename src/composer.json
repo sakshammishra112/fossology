@@ -55,6 +55,9 @@
     "autoload" : {
         "psr-4" : {
             "Fossology\\Lib\\" : "lib/php",
+            "Fossology\\EnhancedReuser\\" : "enhancedreuser",
+            "Fossology\\EnhancedReuser\\Api\\" : "enhancedreuser/api",
+            "Fossology\\EnhancedReuser\\Ui\\" : "enhancedreuser/ui",
             "Fossology\\Agent\\Copyright\\UI\\" : "copyright/ui",
             "Fossology\\CliXml\\UI\\" : "clixml/ui",
             "Fossology\\DeciderJob\\UI\\" : "deciderjob/ui",
