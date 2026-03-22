@@ -7,9 +7,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{{ 'Enhanced Reuse Analysis'|trans }} — {{ uploadFilename|e }}</title>
-  <link rel="stylesheet" href="css/bootstrap.css"/>
-  <link rel="stylesheet" href="css/fossology.css"/>
-  <script src="scripts/jquery.js"></script>
+  <link rel="stylesheet" href="/repo/css/bootstrap/bootstrap.css"/>
+  <link rel="stylesheet" href="/repo/css/fossology.css"/>
+  <script src="/repo/scripts/jquery-3.6.0.min.js"></script>
   {# Chart.js loaded from CDN for histogram rendering #}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -81,16 +81,32 @@
     </div>
   </div>
 
+  {% if authRequired %}
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="alert alert-warning text-center">
+          <h4><i class="fas fa-exclamation-triangle"></i> Authentication Required</h4>
+          <p class="mb-3">{{ authMessage }}</p>
+          <a href="/repo/?mod=auth" class="btn btn-primary">
+            <i class="fas fa-sign-in-alt"></i> Log In to FOSSology
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+
   {% if hasReuseContext %}
 
   {# ── Loading spinner (shown while AJAX loads) ────────────────────────── #}
-  <div id="erLoading" class="text-center py-5">
+  <div id="erLoading" class="text-center py-5"{% if hasReuseContext and stats %} style="display:none;"{% endif %}>
     <div class="spinner-border text-primary" role="status"></div>
     <p class="mt-2 text-muted">{{ 'Loading analysis…'|trans }}</p>
   </div>
 
   {# ── Main content (hidden until data loaded) ─────────────────────────── #}
-  <div id="erContent" style="display:none;">
+  <div id="erContent"{% if not (hasReuseContext and stats) %} style="display:none;"{% endif %}>
 
     {# ── Statistics row ──────────────────────────────────────────────── #}
     <div class="row er-section" id="erStatsRow">
@@ -323,16 +339,33 @@
 
 </div>{# /container-fluid #}
 
-{# Pass server-side data to JS #}
+{# ── JavaScript configuration ──────────────────────────────────── #}
 <script>
-window.erConfig = {
-  uploadId:       {{ uploadId }},
-  reusedUploadId: {{ reusedUploadId }},
-  hasReuseContext: {{ hasReuseContext ? 'true' : 'false' }},
-  apiBase:        '?mod=repo&apiCall=1&action='
-};
+  window.erConfig = {
+    uploadId: {{ uploadId }},
+    reusedUploadId: {{ reusedUploadId }},
+    hasReuseContext: {{ hasReuseContext ? 'true' : 'false' }}
+  };
+  
+  {# Temporarily disable all data to isolate syntax error #}
+  {# {% if stats %}
+  window.erConfig.stats = {{ stats|json_encode(constant('JSON_UNESCAPED_UNICODE'))|raw }};
+  {% endif %}
+  
+  {% if licenseComparison %}
+  window.erConfig.licenseComparison = {{ licenseComparison|json_encode(constant('JSON_UNESCAPED_UNICODE'))|raw }};
+  {% endif %}
+  
+  {% if diffTree %}
+  window.erConfig.diffTree = {{ diffTree|json_encode(constant('JSON_UNESCAPED_UNICODE'))|raw }};
+  {% endif %}
+  
+  {% if suggestions %}
+  window.erConfig.suggestions = {{ suggestions|json_encode(constant('JSON_UNESCAPED_UNICODE'))|raw }};
+  {% endif %} #}
 </script>
 {% include 'enhanced_reuser.js.twig' %}
+{% endif %}{# end authRequired check #}
 
 </body>
 </html>

@@ -12,12 +12,12 @@
   const hasContext   = cfg.hasReuseContext;
 
   /* REST API base URL for Enhanced Reuse endpoints */
-  const API = '/repo/api/v2/uploads/' + uploadId + '/enhanced-reuse';
+  const API = '?mod=enhanced_reuser&upload=' + uploadId;
 
   /* Auth token storage key (FOSSology uses JWT in sessionStorage) */
   function getAuthHeader() {
-    const token = sessionStorage.getItem('fossology-token') || '';
-    return token ? { 'Authorization': 'Bearer ' + token } : {};
+    // For plugin AJAX calls, we don't need auth headers - session authentication is used
+    return {};
   }
 
   /* ── Status labels & colours ─────────────────────────────────────────── */
@@ -56,39 +56,53 @@
    * Bootstrap: load all data in parallel when the page has a reuse context
    * ════════════════════════════════════════════════════════════════════════ */
   $(document).ready(function () {
+    
+    // Debug: Check if erConfig is available and has data
+    console.log('Enhanced Reuser Debug:');
+    console.log('- erConfig available:', typeof window.erConfig !== 'undefined');
+    console.log('- hasContext:', hasContext);
+    console.log('- erConfig:', window.erConfig);
+    
+    if (window.erConfig) {
+      console.log('- stats present:', !!window.erConfig.stats);
+      console.log('- licenseComparison present:', !!window.erConfig.licenseComparison);
+      console.log('- diffTree present:', !!window.erConfig.diffTree);
+      console.log('- suggestions present:', !!window.erConfig.suggestions);
+    }
+    
+    // If we have server-side data, use it immediately
+    if (window.erConfig && window.erConfig.hasReuseContext && window.erConfig.stats && window.erConfig.licenseComparison && window.erConfig.diffTree) {
+      console.log('Using server-side data');
+      console.log('- stats:', window.erConfig.stats);
+      console.log('- licenseComparison:', window.erConfig.licenseComparison);
+      console.log('- diffTree length:', window.erConfig.diffTree.length);
+      
+      renderStats(window.erConfig.stats);
+      console.log('renderStats called');
+      
+      renderHistogram(window.erConfig.licenseComparison);
+      console.log('renderHistogram called');
+      
+      _diffTree = Array.isArray(window.erConfig.diffTree) ? window.erConfig.diffTree : [];
+      console.log('_diffTree set with', _diffTree.length, 'items');
+      
+      renderDiffTable(_diffTree, _activeFilter);
+      console.log('renderDiffTable called');
 
-    // Smart suggestions always loaded regardless of context
-    loadSuggestions();
+      $('#erLoading').hide();
+      $('#erContent').show();
+      console.log('Content shown, loading hidden');
+    } else {
+      console.log('No server-side data available, showing message');
+      $('#erLoading').html('<div class="alert alert-info">No analysis data available. Please run the Enhanced Reuser agent first.</div>');
+    }
 
-    if (!hasContext) return;
-
-    const reuseParam = reusedId ? '?reuseUploadId=' + reusedId : '';
-
-    const pStats   = $.ajax({ url: API + '/stats'  + reuseParam, headers: getAuthHeader() });
-    const pLic     = $.ajax({ url: API + '/license-comparison' + reuseParam, headers: getAuthHeader() });
-    const pDiff    = $.ajax({ url: API + '/diff-tree' + reuseParam, headers: getAuthHeader() });
-
-    $.when(pStats, pLic, pDiff).then(
-      function (statsResp, licResp, diffResp) {
-        const stats   = statsResp[0];
-        const licData = licResp[0];
-        const diff    = diffResp[0];
-
-        renderStats(stats);
-        renderHistogram(licData);
-        _diffTree = Array.isArray(diff) ? diff : [];
-        renderDiffTable(_diffTree, _activeFilter);
-
-        $('#erLoading').hide();
-        $('#erContent').show();
-      },
-      function () {
-        $('#erLoading').html(
-          '<div class="alert alert-danger">Failed to load analysis data. ' +
-          'Make sure the Enhanced Reuser agent has run or try refreshing.</div>'
-        );
-      }
-    );
+    // Load suggestions (server-side or AJAX)
+    if (window.erConfig.suggestions) {
+      renderSuggestions(window.erConfig.suggestions);
+    } else {
+      loadSuggestions();
+    }
 
     /* Refresh button */
     $('#erRefreshBtn').on('click', function () {
@@ -250,35 +264,39 @@
   }
 
   /* ════════════════════════════════════════════════════════════════════════
+   * renderSuggestions — render smart suggestions from server-side data
+   * ════════════════════════════════════════════════════════════════════════ */
+  function renderSuggestions(suggestions) {
+    $('#erSuggestionsLoading').hide();
+    if (!Array.isArray(suggestions) || !suggestions.length) {
+      $('#erSuggestionsEmpty').show();
+      return;
+    }
+    const $list = $('#erSuggestionsList').empty().show();
+    suggestions.forEach(function (s) {
+      const score     = s.score || 0;
+      const scoreColour = score >= 70 ? '#28a745' : score >= 40 ? '#fd7e14' : '#6c757d';
+      const item = `
+        <div class="list-group-item">
+          <div class="d-flex w-100 justify-content-between">
+            <h6 class="mb-1">${s.file}</h6>
+            <small class="text-muted">Score: <span style="color:${scoreColour}">${score}%</span></small>
+          </div>
+          <p class="mb-1">${s.reason || ''}</p>
+        </div>`;
+      $list.append(item);
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
    * loadSuggestions — fetch and render smart suggestions
    * ════════════════════════════════════════════════════════════════════════ */
   function loadSuggestions() {
     $.ajax({
-      url:     API + '/suggestions',
-      headers: getAuthHeader(),
+      url:     API + '&action=suggestions',
+      method:  'POST',
       success: function (data) {
-        $('#erSuggestionsLoading').hide();
-        if (!Array.isArray(data) || !data.length) {
-          $('#erSuggestionsEmpty').show();
-          return;
-        }
-        const $list = $('#erSuggestionsList').empty().show();
-        data.forEach(function (s) {
-          const score     = s.score || 0;
-          const scoreColour = score >= 70 ? '#28a745' : score >= 40 ? '#fd7e14' : '#6c757d';
-          $list.append(
-            '<li class="list-group-item px-2 py-1">' +
-              '<div class="d-flex justify-content-between align-items-center">' +
-                '<span class="text-truncate" style="max-width:180px;" title="' + esc(s.filename) + '">' +
-                  esc(s.filename) + '</span>' +
-                '<span class="er-score-pill" style="background:' + scoreColour + ';">' +
-                  score + '%</span>' +
-              '</div>' +
-              '<small class="text-muted">#' + s.uploadId + ' · ' + esc(s.status) +
-                (s.uploadedAt ? ' · ' + s.uploadedAt.substr(0, 10) : '') + '</small>' +
-              '<br/>' +
-              '<a href="?mod=enhanced_reuser&upload=' + uploadId +
-                '&reuseUploadId=' + s.uploadId +
+        renderSuggestions(data);
                 '" class="btn btn-xs btn-outline-primary mt-1">Use this</a>' +
             '</li>'
           );

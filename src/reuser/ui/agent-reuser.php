@@ -143,8 +143,36 @@ class ReuserAgentPlugin extends AgentPlugin
     $this->createPackageLink($uploadId, $reuseUploadId, $groupId, $reuseGroupId,
       $reuseMode);
 
-    return $this->doAgentAdd($jobId, $uploadId, $errorMsg,
+    $reuserJqId = $this->doAgentAdd($jobId, $uploadId, $errorMsg,
       $reuserDependencies, $uploadId, null, $request);
+    if ($reuserJqId < 0) {
+      return $reuserJqId;
+    }
+
+    // Always run Enhanced Reuser after Reuser is queued.
+    // The enhanced agent itself is a no-op when no reuse pair exists.
+    $enhancedJqId = \JobQueueAdd(
+      $jobId,
+      'enhancedreuser',
+      strval($uploadId),
+      '',
+      [$reuserJqId]
+    );
+    if (empty($enhancedJqId)) {
+      $errorMsg .= ' Failed to queue enhancedreuser.';
+      return -1;
+    }
+
+    $schedulerError = '';
+    $schedulerOutput = '';
+    if (!\fo_communicate_with_scheduler('database', $schedulerOutput, $schedulerError)) {
+      $errorMsg .= "\n" . $schedulerError;
+      if (!empty($schedulerOutput)) {
+        $errorMsg .= "\n" . $schedulerOutput;
+      }
+    }
+
+    return $reuserJqId;
   }
 
   private function scheduleOsselotImportDirect(int $jobId, int $uploadId, string &$errorMsg, Request $request): int

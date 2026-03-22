@@ -461,7 +461,7 @@ class EnhancedReuserController extends RestController
 
     // Query v1 files by name
     $sql = "SELECT ut.uploadtree_pk, ut.ufile_name, ut.pfile_fk
-              FROM uploadtree ut
+              FROM $reusedTable ut
              WHERE ut.upload_fk = $1
                AND ut.lft BETWEEN $2 AND $3
                AND ut.pfile_fk != 0
@@ -480,8 +480,14 @@ class EnhancedReuserController extends RestController
     $dbManager->freeResult($res);
 
     // Query v2 files
+    $sqlV2 = "SELECT ut.uploadtree_pk, ut.ufile_name, ut.pfile_fk
+                FROM $uploadTreeTable ut
+               WHERE ut.upload_fk = $1
+                 AND ut.lft BETWEEN $2 AND $3
+                 AND ut.pfile_fk != 0
+                 AND (ut.ufile_mode & (1<<28)) = 0";
     $stmt2 = 'EnhancedReuserController.v2Files';
-    $dbManager->prepare($stmt2, $sql);
+    $dbManager->prepare($stmt2, $sqlV2);
     $res2 = $dbManager->execute($stmt2, [
       $v2Bounds->getUploadId(),
       $v2Bounds->getLeft(),

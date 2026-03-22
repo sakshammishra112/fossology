@@ -70,7 +70,7 @@ class EnhancedReuserAgent extends Agent
   private $licenseDao;
 
   /** @var AgentDao $agentDao */
-  private $agentDao;
+  protected $agentDao;
 
   /** @var FolderDao $folderDao */
   private $folderDao;
@@ -173,8 +173,6 @@ class EnhancedReuserAgent extends Agent
    */
   private function buildDiffTree(ItemTreeBounds $v2Bounds, ItemTreeBounds $v1Bounds, $reusedGroupId)
   {
-    $uploadDao = $this->uploadDao;
-
     // Get clearing decisions indexed by pfile for v1
     $v1Decisions = $this->clearingDao->getFileClearingsFolder($v1Bounds, $reusedGroupId);
     $v1ByPfile   = [];
@@ -190,8 +188,11 @@ class EnhancedReuserAgent extends Agent
     }
 
     // Build a name-keyed index for v1 files so we can match by filename
+    $v1TreeTable = $this->uploadDao->getUploadtreeTableName($v1Bounds->getUploadId());
+    $v2TreeTable = $this->uploadDao->getUploadtreeTableName($v2Bounds->getUploadId());
+
     $sql = "SELECT ut.uploadtree_pk, ut.ufile_name, ut.pfile_fk
-              FROM uploadtree ut
+              FROM $v1TreeTable ut
              WHERE ut.upload_fk = $1
                AND ut.lft BETWEEN $2 AND $3
                AND ut.pfile_fk != 0
@@ -211,7 +212,7 @@ class EnhancedReuserAgent extends Agent
 
     // Enumerate v2 files and match against v1
     $sql2 = "SELECT ut.uploadtree_pk, ut.ufile_name, ut.pfile_fk
-               FROM uploadtree ut
+               FROM $v2TreeTable ut
               WHERE ut.upload_fk = $1
                 AND ut.lft BETWEEN $2 AND $3
                 AND ut.pfile_fk != 0
