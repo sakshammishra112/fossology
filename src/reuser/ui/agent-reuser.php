@@ -16,6 +16,7 @@ namespace Fossology\Reuser;
 use Fossology\Lib\Auth\Auth;
 use Fossology\Lib\Dao\PackageDao;
 use Fossology\Lib\Dao\UploadDao;
+use Fossology\EnhancedReuser\Ui\EnhancedReuserAgentPlugin;
 use Fossology\Lib\Plugin\AgentPlugin;
 use Fossology\Lib\Util\StringOperation;
 use Fossology\Lib\Util\OsselotLookupHelper;
@@ -108,6 +109,7 @@ class ReuserAgentPlugin extends AgentPlugin
     $groupId = $request->get('groupId', Auth::getGroupId());
     $getReuseValue = $request->get(self::REUSE_MODE) ?: array();
     $reuserDependencies = array("agent_adj2nest");
+    $scheduleEnhancedReuseAgent = false;
 
     $reuseMode = UploadDao::REUSE_NONE;
     foreach ($getReuseValue as $currentReuseValue) {
@@ -117,6 +119,7 @@ class ReuserAgentPlugin extends AgentPlugin
           break;
         case 'reuseEnhanced':
           $reuseMode |= UploadDao::REUSE_ENHANCED;
+          $scheduleEnhancedReuseAgent = true;
           break;
         case 'reuseConf':
           $reuseMode |= UploadDao::REUSE_CONF;
@@ -156,8 +159,20 @@ class ReuserAgentPlugin extends AgentPlugin
       $reuserDependencies[] = $scancodeDeps;
     }
 
-    return $this->doAgentAdd($jobId, $uploadId, $errorMsg,
+    $jobQueueId = $this->doAgentAdd($jobId, $uploadId, $errorMsg,
       $reuserDependencies, $uploadId, null, $request);
+    /* Schedule enhanced analysis after PHP reuser: it needs reuse/copy data from agent_reuser. */
+    if ($jobQueueId > 0 && $scheduleEnhancedReuseAgent) {
+      $enhancedPlug = plugin_find('agent_enhancedreuser');
+      if ($enhancedPlug instanceof EnhancedReuserAgentPlugin) {
+        $enhErr = '';
+        $jqEnhanced = $enhancedPlug->scheduleAfterReuserJob($jobId, $uploadId, $jobQueueId, $enhErr);
+        if ($jqEnhanced < 0) {
+          $errorMsg .= $enhErr;
+        }
+      }
+    }
+    return $jobQueueId;
   }
 
   private function scheduleOsselotImportDirect(int $jobId, int $uploadId, string &$errorMsg, Request $request): int

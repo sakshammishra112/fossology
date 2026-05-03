@@ -2115,6 +2115,122 @@
   $Schema["TABLE"]["upload_reuse"]["date_added"]["ADD"] = "ALTER TABLE \"upload_reuse\" ADD COLUMN \"date_added\" timestamptz DEFAULT now()";
   $Schema["TABLE"]["upload_reuse"]["date_added"]["ALTER"] = "ALTER TABLE \"upload_reuse\" ALTER COLUMN \"date_added\" SET NOT NULL, ALTER COLUMN \"date_added\" SET DEFAULT now()";
 
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["analysis_pk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["analysis_pk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"analysis_pk\" int4 DEFAULT nextval('enhanced_reuse_analysis_analysis_pk_seq'::regclass)";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["analysis_pk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"analysis_pk\" SET NOT NULL, ALTER COLUMN \"analysis_pk\" SET DEFAULT nextval('enhanced_reuse_analysis_analysis_pk_seq'::regclass)";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["upload_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["upload_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"upload_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["upload_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"upload_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["reused_upload_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["reused_upload_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"reused_upload_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["reused_upload_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"reused_upload_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["group_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["group_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"group_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["group_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"group_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["status"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["status"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"status\" text DEFAULT 'PENDING'::text";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["status"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"status\" SET NOT NULL, ALTER COLUMN \"status\" SET DEFAULT 'PENDING'::text";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["created_at"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["created_at"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"created_at\" timestamptz DEFAULT now()";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["created_at"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"created_at\" SET NOT NULL, ALTER COLUMN \"created_at\" SET DEFAULT now()";
+
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["updated_at"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["updated_at"]["ADD"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD COLUMN \"updated_at\" timestamptz DEFAULT now()";
+  $Schema["TABLE"]["enhanced_reuse_analysis"]["updated_at"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_analysis\" ALTER COLUMN \"updated_at\" SET NOT NULL, ALTER COLUMN \"updated_at\" SET DEFAULT now()";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["comparison_pk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["comparison_pk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"comparison_pk\" int4 DEFAULT nextval('enhanced_reuse_file_comparison_comparison_pk_seq'::regclass)";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["comparison_pk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"comparison_pk\" SET NOT NULL, ALTER COLUMN \"comparison_pk\" SET DEFAULT nextval('enhanced_reuse_file_comparison_comparison_pk_seq'::regclass)";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["analysis_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["analysis_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"analysis_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["analysis_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"analysis_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["upload_pfile_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["upload_pfile_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"upload_pfile_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["upload_pfile_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"upload_pfile_fk\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["reused_pfile_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["reused_pfile_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"reused_pfile_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["reused_pfile_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"reused_pfile_fk\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["file_name"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["file_name"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"file_name\" text";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["file_name"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"file_name\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["classification"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["classification"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"classification\" text";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["classification"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"classification\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["modification_type"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["modification_type"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"modification_type\" text DEFAULT 'NONE'::text";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["modification_type"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"modification_type\" SET NOT NULL, ALTER COLUMN \"modification_type\" SET DEFAULT 'NONE'::text";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["changed_lines"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["changed_lines"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"changed_lines\" int4 DEFAULT 0";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["changed_lines"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"changed_lines\" SET NOT NULL, ALTER COLUMN \"changed_lines\" SET DEFAULT 0";
+
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["risk_level"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["risk_level"]["ADD"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD COLUMN \"risk_level\" text DEFAULT 'LOW'::text";
+  $Schema["TABLE"]["enhanced_reuse_file_comparison"]["risk_level"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ALTER COLUMN \"risk_level\" SET NOT NULL, ALTER COLUMN \"risk_level\" SET DEFAULT 'LOW'::text";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["comparison_pk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["comparison_pk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"comparison_pk\" int4 DEFAULT nextval('enhanced_reuse_license_comparison_comparison_pk_seq'::regclass)";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["comparison_pk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"comparison_pk\" SET NOT NULL, ALTER COLUMN \"comparison_pk\" SET DEFAULT nextval('enhanced_reuse_license_comparison_comparison_pk_seq'::regclass)";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["analysis_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["analysis_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"analysis_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["analysis_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"analysis_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["upload_pfile_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["upload_pfile_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"upload_pfile_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["upload_pfile_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"upload_pfile_fk\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_pfile_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_pfile_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"reused_pfile_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_pfile_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"reused_pfile_fk\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["current_decision"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["current_decision"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"current_decision\" text";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["current_decision"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"current_decision\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_decision"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_decision"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"reused_decision\" text";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["reused_decision"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"reused_decision\" DROP NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["conflict"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["conflict"]["ADD"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD COLUMN \"conflict\" bool DEFAULT false";
+  $Schema["TABLE"]["enhanced_reuse_license_comparison"]["conflict"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ALTER COLUMN \"conflict\" SET NOT NULL, ALTER COLUMN \"conflict\" SET DEFAULT false";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_pk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_pk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"histogram_pk\" int4 DEFAULT nextval('enhanced_reuse_histogram_histogram_pk_seq'::regclass)";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_pk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"histogram_pk\" SET NOT NULL, ALTER COLUMN \"histogram_pk\" SET DEFAULT nextval('enhanced_reuse_histogram_histogram_pk_seq'::regclass)";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["analysis_fk"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["analysis_fk"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"analysis_fk\" int4";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["analysis_fk"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"analysis_fk\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_key"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_key"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"histogram_key\" text";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_key"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"histogram_key\" SET NOT NULL";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_count"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_count"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"histogram_count\" int4 DEFAULT 0";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["histogram_count"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"histogram_count\" SET NOT NULL, ALTER COLUMN \"histogram_count\" SET DEFAULT 0";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["risk_level"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["risk_level"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"risk_level\" text DEFAULT 'LOW'::text";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["risk_level"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"risk_level\" SET NOT NULL, ALTER COLUMN \"risk_level\" SET DEFAULT 'LOW'::text";
+
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["created_at"]["DESC"] = "";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["created_at"]["ADD"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD COLUMN \"created_at\" timestamptz DEFAULT now()";
+  $Schema["TABLE"]["enhanced_reuse_histogram"]["created_at"]["ALTER"] = "ALTER TABLE \"enhanced_reuse_histogram\" ALTER COLUMN \"created_at\" SET NOT NULL, ALTER COLUMN \"created_at\" SET DEFAULT now()";
+
 
   $Schema["TABLE"]["uploadtree"]["uploadtree_pk"]["DESC"] = "";
   $Schema["TABLE"]["uploadtree"]["uploadtree_pk"]["ADD"] = "ALTER TABLE \"uploadtree\" ADD COLUMN \"uploadtree_pk\" int4 DEFAULT nextval('uploadtree_uploadtree_pk_seq'::regclass)";
@@ -2539,6 +2655,18 @@
   $Schema["SEQUENCE"]["ipra_decision_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"ipra_decision_pk_seq\"";
   $Schema["SEQUENCE"]["ipra_decision_pk_seq"]["UPDATE"] = "SELECT setval('ipra_decision_pk_seq',(SELECT greatest(1,max(ipra_decision_pk)) val FROM ipra_decision))";
 
+  $Schema["SEQUENCE"]["enhanced_reuse_analysis_analysis_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"enhanced_reuse_analysis_analysis_pk_seq\"";
+  $Schema["SEQUENCE"]["enhanced_reuse_analysis_analysis_pk_seq"]["UPDATE"] = "SELECT setval('enhanced_reuse_analysis_analysis_pk_seq',(SELECT greatest(1,max(analysis_pk)) val FROM enhanced_reuse_analysis))";
+
+  $Schema["SEQUENCE"]["enhanced_reuse_file_comparison_comparison_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"enhanced_reuse_file_comparison_comparison_pk_seq\"";
+  $Schema["SEQUENCE"]["enhanced_reuse_file_comparison_comparison_pk_seq"]["UPDATE"] = "SELECT setval('enhanced_reuse_file_comparison_comparison_pk_seq',(SELECT greatest(1,max(comparison_pk)) val FROM enhanced_reuse_file_comparison))";
+
+  $Schema["SEQUENCE"]["enhanced_reuse_license_comparison_comparison_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"enhanced_reuse_license_comparison_comparison_pk_seq\"";
+  $Schema["SEQUENCE"]["enhanced_reuse_license_comparison_comparison_pk_seq"]["UPDATE"] = "SELECT setval('enhanced_reuse_license_comparison_comparison_pk_seq',(SELECT greatest(1,max(comparison_pk)) val FROM enhanced_reuse_license_comparison))";
+
+  $Schema["SEQUENCE"]["enhanced_reuse_histogram_histogram_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"enhanced_reuse_histogram_histogram_pk_seq\"";
+  $Schema["SEQUENCE"]["enhanced_reuse_histogram_histogram_pk_seq"]["UPDATE"] = "SELECT setval('enhanced_reuse_histogram_histogram_pk_seq',(SELECT greatest(1,max(histogram_pk)) val FROM enhanced_reuse_histogram))";
+
   $Schema["SEQUENCE"]["keyword_decision_pk_seq"]["CREATE"] = "CREATE SEQUENCE \"keyword_decision_pk_seq\"";
   $Schema["SEQUENCE"]["keyword_decision_pk_seq"]["UPDATE"] = "SELECT setval('keyword_decision_pk_seq',(SELECT greatest(1,max(keyword_decision_pk)) val FROM keyword_decision))";
 
@@ -2692,6 +2820,20 @@
   $Schema["CONSTRAINT"]["users_group_id_fkey"] = "ALTER TABLE \"users\" ADD CONSTRAINT \"users_group_id_fkey\" FOREIGN KEY (\"group_fk\") REFERENCES \"groups\" (\"group_pk\") ON UPDATE NO ACTION ON DELETE NO ACTION;";
   $Schema["CONSTRAINT"]["users_new_upload_group_fk_fkey"] = "ALTER TABLE \"users\" ADD CONSTRAINT \"users_new_upload_group_fk_fkey\" FOREIGN KEY (\"new_upload_group_fk\") REFERENCES \"groups\" (\"group_pk\") ON UPDATE CASCADE ON DELETE RESTRICT;";
   $Schema["CONSTRAINT"]["upload_events_upload_fk_fkey"] = "ALTER TABLE \"upload_events\" ADD CONSTRAINT \"upload_events_upload_fk_fkey\" FOREIGN KEY (\"upload_fk\") REFERENCES \"upload\" (\"upload_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_analysis_pkey"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD CONSTRAINT \"enhanced_reuse_analysis_pkey\" PRIMARY KEY (\"analysis_pk\");";
+  $Schema["CONSTRAINT"]["enhanced_reuse_analysis_upload_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD CONSTRAINT \"enhanced_reuse_analysis_upload_fk_fkey\" FOREIGN KEY (\"upload_fk\") REFERENCES \"upload\" (\"upload_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_analysis_reused_upload_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD CONSTRAINT \"enhanced_reuse_analysis_reused_upload_fk_fkey\" FOREIGN KEY (\"reused_upload_fk\") REFERENCES \"upload\" (\"upload_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_analysis_group_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_analysis\" ADD CONSTRAINT \"enhanced_reuse_analysis_group_fk_fkey\" FOREIGN KEY (\"group_fk\") REFERENCES \"groups\" (\"group_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_file_comparison_pkey"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD CONSTRAINT \"enhanced_reuse_file_comparison_pkey\" PRIMARY KEY (\"comparison_pk\");";
+  $Schema["CONSTRAINT"]["enhanced_reuse_file_comparison_analysis_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD CONSTRAINT \"enhanced_reuse_file_comparison_analysis_fk_fkey\" FOREIGN KEY (\"analysis_fk\") REFERENCES \"enhanced_reuse_analysis\" (\"analysis_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_file_comparison_upload_pfile_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD CONSTRAINT \"enhanced_reuse_file_comparison_upload_pfile_fk_fkey\" FOREIGN KEY (\"upload_pfile_fk\") REFERENCES \"pfile\" (\"pfile_pk\") ON UPDATE NO ACTION ON DELETE SET NULL;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_file_comparison_reused_pfile_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_file_comparison\" ADD CONSTRAINT \"enhanced_reuse_file_comparison_reused_pfile_fk_fkey\" FOREIGN KEY (\"reused_pfile_fk\") REFERENCES \"pfile\" (\"pfile_pk\") ON UPDATE NO ACTION ON DELETE SET NULL;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_license_comparison_pkey"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD CONSTRAINT \"enhanced_reuse_license_comparison_pkey\" PRIMARY KEY (\"comparison_pk\");";
+  $Schema["CONSTRAINT"]["enhanced_reuse_license_comparison_analysis_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD CONSTRAINT \"enhanced_reuse_license_comparison_analysis_fk_fkey\" FOREIGN KEY (\"analysis_fk\") REFERENCES \"enhanced_reuse_analysis\" (\"analysis_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_license_comparison_upload_pfile_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD CONSTRAINT \"enhanced_reuse_license_comparison_upload_pfile_fk_fkey\" FOREIGN KEY (\"upload_pfile_fk\") REFERENCES \"pfile\" (\"pfile_pk\") ON UPDATE NO ACTION ON DELETE SET NULL;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_license_comparison_reused_pfile_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_license_comparison\" ADD CONSTRAINT \"enhanced_reuse_license_comparison_reused_pfile_fk_fkey\" FOREIGN KEY (\"reused_pfile_fk\") REFERENCES \"pfile\" (\"pfile_pk\") ON UPDATE NO ACTION ON DELETE SET NULL;";
+  $Schema["CONSTRAINT"]["enhanced_reuse_histogram_pkey"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD CONSTRAINT \"enhanced_reuse_histogram_pkey\" PRIMARY KEY (\"histogram_pk\");";
+  $Schema["CONSTRAINT"]["enhanced_reuse_histogram_analysis_fk_fkey"] = "ALTER TABLE \"enhanced_reuse_histogram\" ADD CONSTRAINT \"enhanced_reuse_histogram_analysis_fk_fkey\" FOREIGN KEY (\"analysis_fk\") REFERENCES \"enhanced_reuse_analysis\" (\"analysis_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
   $Schema["CONSTRAINT"]["copyright_event_pkey"] = "ALTER TABLE \"copyright_event\" ADD CONSTRAINT \"copyright_event_pkey\" PRIMARY KEY (\"copyright_event_pk\");";
   $Schema["CONSTRAINT"]["copyright_event_upload_fk_fkey"] = "ALTER TABLE \"copyright_event\" ADD CONSTRAINT \"copyright_event_upload_fk_fkey\" FOREIGN KEY (\"upload_fk\") REFERENCES \"upload\" (\"upload_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
   $Schema["CONSTRAINT"]["copyright_event_copyright_fk_fkey"] = "ALTER TABLE \"copyright_event\" ADD CONSTRAINT \"copyright_event_copyright_fk_fkey\" FOREIGN KEY (\"copyright_fk\") REFERENCES \"copyright\" (\"copyright_pk\") ON UPDATE NO ACTION ON DELETE CASCADE;";
@@ -2861,6 +3003,11 @@
   $Schema["INDEX"]["ipra_event"]["ipra_event_upload_fk_index"] = "CREATE INDEX ipra_event_upload_fk_index ON ipra_event USING btree (upload_fk);";
   $Schema["INDEX"]["ipra_event"]["ipra_event_uploadtree_fk_index"] = "CREATE INDEX ipra_event_uploadtree_fk_index ON ipra_event USING btree (uploadtree_fk);";
   $Schema["INDEX"]["ipra_event"]["ipra_event_ipra_fk_index"] = "CREATE INDEX ipra_event_ipra_fk_index ON ipra_event USING btree (ipra_fk);";
+  $Schema["INDEX"]["enhanced_reuse_analysis"]["enhanced_reuse_analysis_upload_fk_idx"] = "CREATE INDEX enhanced_reuse_analysis_upload_fk_idx ON enhanced_reuse_analysis USING btree (upload_fk);";
+  $Schema["INDEX"]["enhanced_reuse_file_comparison"]["enhanced_reuse_file_comparison_analysis_fk_idx"] = "CREATE INDEX enhanced_reuse_file_comparison_analysis_fk_idx ON enhanced_reuse_file_comparison USING btree (analysis_fk);";
+  $Schema["INDEX"]["enhanced_reuse_file_comparison"]["enhanced_reuse_file_comparison_reused_pfile_fk_idx"] = "CREATE INDEX enhanced_reuse_file_comparison_reused_pfile_fk_idx ON enhanced_reuse_file_comparison USING btree (reused_pfile_fk);";
+  $Schema["INDEX"]["enhanced_reuse_license_comparison"]["enhanced_reuse_license_comparison_analysis_fk_idx"] = "CREATE INDEX enhanced_reuse_license_comparison_analysis_fk_idx ON enhanced_reuse_license_comparison USING btree (analysis_fk);";
+  $Schema["INDEX"]["enhanced_reuse_histogram"]["enhanced_reuse_histogram_analysis_fk_idx"] = "CREATE INDEX enhanced_reuse_histogram_analysis_fk_idx ON enhanced_reuse_histogram USING btree (analysis_fk);";
 
   $Schema["CLUSTER"]["upload_pkey_idx"] = "ALTER TABLE \"upload\" CLUSTER ON \"upload_pkey_idx\";";
   $Schema["CLUSTER"]["ufile_rel_pkey"] = "ALTER TABLE \"uploadtree\" CLUSTER ON \"ufile_rel_pkey\";";

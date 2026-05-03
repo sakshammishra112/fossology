@@ -1,0 +1,15 @@
+{# SPDX-FileCopyrightText: © 2026 Fossology contributors
+
+   SPDX-License-Identifier: FSFAP
+#}
+{% extends "include/base.html.twig" %}
+
+{% block content %}
+  {{ micromenu|raw }}
+
+  {% include 'enhanced-reuse-analysis.html.twig' %}
+
+  {% include 'enhanced-reuse-analysis.css.twig' %}
+
+  {% include 'enhanced-reuse-analysis.js.twig' %}
+{% endblock %}

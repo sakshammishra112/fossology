@@ -26,6 +26,7 @@ use Fossology\UI\Api\Controllers\BadRequestController;
 use Fossology\UI\Api\Controllers\ConfController;
 use Fossology\UI\Api\Controllers\CopyrightController;
 use Fossology\UI\Api\Controllers\CustomiseController;
+use Fossology\UI\Api\Controllers\EnhancedReuseController;
 use Fossology\UI\Api\Controllers\FileInfoController;
 use Fossology\UI\Api\Controllers\FileSearchController;
 use Fossology\UI\Api\Controllers\FolderController;
@@ -222,6 +223,10 @@ $app->group('/uploads',
     $app->get('/{id:\\d+}/conf', ConfController::class . ':getConfInfo');
     $app->put('/{id:\\d+}/conf', ConfController::class . ':updateConfData');
     $app->get('/{id:\\d+}/copyrights', UploadController::class . ':getUploadCopyrights');
+    $app->get('/{id:\\d+}/enhanced-reuse/stats', EnhancedReuseController::class . ':getStats');
+    $app->get('/{id:\\d+}/enhanced-reuse/license-comparison', EnhancedReuseController::class . ':getLicenseComparison');
+    $app->get('/{id:\\d+}/enhanced-reuse/suggestions', EnhancedReuseController::class . ':getSuggestions');
+    $app->get('/{id:\\d+}/enhanced-reuse/diff-tree', EnhancedReuseController::class . ':getDiffTree');
     $app->post('/{id:\\d+}/osselot/import', OsselotController::class . ':importOsselotReport');
     ////////////////////////// BULK FOR CX OPERATIONS /////////////////////
     $app->group('/{id:\\d+}/item/{itemId:\\d+}', function (\Slim\Routing\RouteCollectorProxy $app) {

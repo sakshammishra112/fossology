@@ -1,0 +1,115 @@
+<div class="container-fluid mt-3">
+  <h3>{{ 'Enhanced Reuse Analysis'|trans }}</h3>
+  <p class="text-muted">{{ 'Results from the enhancedreuser agent for this upload (reuse comparison, risk, license deltas).'|trans }}</p>
+
+  <ul class="nav nav-tabs" id="enhanced-reuse-tabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-histogram" data-toggle="tab" href="#pane-histogram" role="tab">
+        {{ 'Histogram'|trans }}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-diff" data-toggle="tab" href="#pane-diff" role="tab">
+        {{ 'Diff tree'|trans }}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-licenses" data-toggle="tab" href="#pane-licenses" role="tab">
+        {{ 'License comparison'|trans }}
+      </a>
+    </li>
+  </ul>
+
+  <div class="tab-content border border-top-0 p-3" id="enhanced-reuse-tab-content">
+    <div class="tab-pane fade show active" id="pane-histogram" role="tabpanel">
+      <table id="enhanced-reuse-stats" class="table table-bordered table-striped table-sm w-100">
+        <thead>
+          <tr>
+            <th>{{ 'Type'|trans }}</th>
+            <th>{{ 'Count'|trans }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in enhancedReuseStats|default([]) %}
+          <tr>
+            <td>{{ row.classification|e }}</td>
+            <td>{{ row.total|e }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tab-pane fade" id="pane-diff" role="tabpanel">
+      <table id="enhanced-reuse-tree" class="table table-bordered table-striped table-sm w-100">
+        <thead>
+          <tr>
+            <th>{{ 'File'|trans }}</th>
+            <th>{{ 'Classification'|trans }}</th>
+            <th>{{ 'Modification'|trans }}</th>
+            <th>{{ 'Changed lines'|trans }}</th>
+            <th>{{ 'Risk'|trans }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in enhancedReuseDiffTree|default([]) %}
+          <tr>
+            <td>{{ row.file_name|e }}</td>
+            <td>{{ row.classification|e }}</td>
+            <td>{{ row.modification_type|e }}</td>
+            <td>{{ row.changed_lines|default('')|e }}</td>
+            <td>
+              {% set rl = row.risk_level|default('') %}
+              {% if rl == 'CRITICAL' %}
+                <span class="badge badge-danger">{{ rl|e }}</span>
+              {% elseif rl == 'HIGH' %}
+                <span class="badge badge-warning">{{ rl|e }}</span>
+              {% elseif rl == 'MEDIUM' %}
+                <span class="badge badge-info">{{ rl|e }}</span>
+              {% elseif rl == 'LOW' %}
+                <span class="badge badge-success">{{ rl|e }}</span>
+              {% else %}
+                <span class="badge badge-secondary">{{ rl|e }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tab-pane fade" id="pane-licenses" role="tabpanel">
+      <p class="small text-muted">{{ 'For each matched pfile pair: effective clearing conclusions for your group (including global/repo scope). Scanner hits are not shown. Empty means no clearing decision yet (NOASSERTION). “Conflict” means the two sides differ.'|trans }}</p>
+      <table id="enhanced-reuse-licenses" class="table table-bordered table-striped table-sm w-100">
+        <thead>
+          <tr>
+            <th>{{ 'File'|trans }}</th>
+            <th>{{ 'Upload pfile'|trans }}</th>
+            <th>{{ 'Reused pfile'|trans }}</th>
+            <th>{{ 'This upload (clearing)'|trans }}</th>
+            <th>{{ 'Reused upload (clearing)'|trans }}</th>
+            <th>{{ 'Conflict'|trans }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in enhancedReuseLicenses|default([]) %}
+          <tr>
+            <td>
+              {% if row.license_file_href|default('') %}
+                <a href="{{ row.license_file_href|e('html_attr') }}">{{ row.file_name|default('')|e }}</a>
+              {% else %}
+                {{ row.file_name|default('')|e }}
+              {% endif %}
+            </td>
+            <td>{{ row.upload_pfile_fk|default('')|e }}</td>
+            <td>{{ row.reused_pfile_fk|default('')|e }}</td>
+            <td>{{ row.current_decision|default('')|e }}</td>
+            <td>{{ row.reused_decision|default('')|e }}</td>
+            <td>{% if row.conflict is same as(true) or row.conflict == 't' or row.conflict == 1 %}{{ 'Yes'|trans }}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

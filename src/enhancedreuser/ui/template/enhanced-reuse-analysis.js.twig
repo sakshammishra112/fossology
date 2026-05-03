@@ -1,0 +1,17 @@
+<script type="text/javascript">
+  $(document).ready(function () {
+    if (!$.fn.DataTable) {
+      return;
+    }
+    var tables = ["#enhanced-reuse-stats", "#enhanced-reuse-tree", "#enhanced-reuse-licenses"];
+    tables.forEach(function (sel) {
+      var $t = $(sel);
+      if ($t.length && $t.find("tbody tr").length > 0) {
+        $t.DataTable({
+          pageLength: 25,
+          order: []
+        });
+      }
+    });
+  });
+</script>

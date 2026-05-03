@@ -116,6 +116,9 @@ class UploadDao
       "FROM $uploadTreeTableName " .
       "WHERE upload_fk = $1 AND pfile_fk = $2",
       array($uploadFk, $pfileFk), $stmt);
+    if (empty($uploadEntry) || !isset($uploadEntry['uploadtree_pk'])) {
+      return 0;
+    }
     return intval($uploadEntry['uploadtree_pk']);
   }
 
