@@ -1,0 +1,500 @@
+{# SPDX-FileCopyrightText: © 2026 Fossology contributors
+
+SPDX-License-Identifier: GPL-2.0-only
+#}
+{% extends "include/base.html.twig" %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <h3>{{ 'Enhanced Reuse Analysis - Comprehensive View'|trans }}</h3>
+        
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" id="comprehensive-tabs" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" id="tab-comprehensive" data-toggle="tab" href="#pane-comprehensive" role="tab">
+              {{ 'Comprehensive View'|trans }}
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="tab-original" data-toggle="tab" href="#pane-original" role="tab">
+              {{ 'Original View'|trans }}
+            </a>
+          </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content border border-top-0 p-3" id="comprehensive-tab-content">
+          <!-- Comprehensive View Tab -->
+          <div class="tab-pane fade show active" id="pane-comprehensive" role="tabpanel">
+            <div class="row">
+              <!-- Left Side: Diff Tree (Main Content) -->
+              <div class="col-md-8">
+                <div class="card">
+                  <div class="card-header">
+                    <h5>{{ 'File Changes - Diff Tree'|trans }}</h5>
+                    <small class="text-muted">{{ 'Click on file names to view details, changed lines for diff view'|trans }}</small>
+                  </div>
+                  <div class="card-body p-0">
+                    <div style="max-height: 600px; overflow-y: auto;">
+                      <table id="comprehensive-diff-tree" class="table table-bordered table-striped table-sm w-100 mb-0">
+                        <thead class="sticky-top bg-light">
+                          <tr>
+                            <th>{{ 'File'|trans }}</th>
+                            <th>{{ 'Classification'|trans }}</th>
+                            <th>{{ 'License(upload)'|trans }}</th>
+                            <th>{{ 'License(reuse)'|trans }}</th>
+                            <th>{{ 'Status'|trans }}</th>
+                            <th>{{ 'Type'|trans }}</th>
+                            <th>{{ 'Risk'|trans }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in enhancedReuseDiffTree|default([]) %}
+                          <tr>
+                            <td>
+                              {% if row.file_href|default('') %}
+                                <a href="{{ row.file_href|e('html_attr') }}">{{ row.file_name|e }}</a>
+                              {% else %}
+                                {{ row.file_name|e }}
+                              {% endif %}
+                            </td>
+                            <td>{{ row.classification|e }}</td>
+                            <td>{{ row.upload_license|default('')|e }}</td>
+                            <td>{{ row.reuse_license|default('')|e }}</td>
+                            <td>
+                              {% set status = row.license_status|default('') %}
+                              {% if status == 'Added' %}
+                                <span class="badge badge-success">{{ 'Added'|trans }}</span>
+                              {% elseif status == 'Deleted' %}
+                                <span class="badge badge-danger">{{ 'Deleted'|trans }}</span>
+                              {% elseif status == 'Modified' %}
+                                <span class="badge badge-warning">{{ 'Modified'|trans }}</span>
+                              {% elseif status == 'Unchanged' %}
+                                <span class="badge badge-info">{{ 'Unchanged'|trans }}</span>
+                              {% else %}
+                                <span class="badge badge-secondary">{{ status|e }}</span>
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% set change_type = row.change_type|default('mixed') %}
+                              {% if change_type == 'License text' %}
+                                <span class="badge badge-danger">{{ 'License text'|trans }}</span>
+                              {% elseif change_type == 'Copyright' %}
+                                <span class="badge badge-warning">{{ 'Copyright'|trans }}</span>
+                              {% elseif change_type == 'code' %}
+                                <span class="badge badge-primary">{{ 'Code'|trans }}</span>
+                              {% elseif change_type == 'comment' %}
+                                <span class="badge badge-info">{{ 'Comment'|trans }}</span>
+                              {% elseif change_type == 'Config' %}
+                                <span class="badge badge-secondary">{{ 'Config'|trans }}</span>
+                              {% else %}
+                                <span class="badge badge-light">{{ 'Mixed'|trans }}</span>
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% set rl = row.risk_level|default('') %}
+                              {% if rl == 'CRITICAL' %}
+                                <span class="badge badge-danger">{{ rl|e }}</span>
+                              {% elseif rl == 'HIGH' %}
+                                <span class="badge badge-warning">{{ rl|e }}</span>
+                              {% elseif rl == 'MEDIUM' %}
+                                <span class="badge badge-info">{{ rl|e }}</span>
+                              {% elseif rl == 'LOW' %}
+                                <span class="badge badge-success">{{ rl|e }}</span>
+                              {% else %}
+                                <span class="badge badge-secondary">{{ rl|e }}</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right Side: Statistics and License Comparison -->
+              <div class="col-md-4">
+                <!-- Side-by-side Statistics using CSS Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; width: 100% !important; box-sizing: border-box;">
+                  <!-- File Classification Statistics -->
+                  <div>
+                    <div class="card">
+                      <div class="card-header">
+                        <h6 class="mb-0">{{ 'File Classification'|trans }}</h6>
+                      </div>
+                      <div class="card-body p-0">
+                        <table class="table table-bordered table-sm w-100 mb-0">
+                          <thead>
+                            <tr>
+                              <th>{{ 'Type'|trans }}</th>
+                              <th>{{ 'Count'|trans }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                          {% for row in enhancedReuseStats|default([]) %}
+                            <tr>
+                              <td>{{ row.classification|e }}</td>
+                              <td>{{ row.total|e }}</td>
+                            </tr>
+                          {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- License Statistics -->
+                  <div>
+                    <div class="card">
+                      <div class="card-header">
+                        <h6 class="mb-0">{{ 'License Statistics'|trans }}</h6>
+                      </div>
+                      <div class="card-body p-0">
+                        <table class="table table-bordered table-sm w-100 mb-0">
+                          <thead>
+                            <tr>
+                              <th>{{ 'Type'|trans }}</th>
+                              <th>{{ 'Count'|trans }}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>{{ 'New'|trans }}</td>
+                              <td>
+                                {% if licenseHistogramStats.new_licenses_url|default('') and licenseHistogramStats.new_licenses|default(0) > 0 %}
+                                  <a href="{{ licenseHistogramStats.new_licenses_url|e('html_attr') }}" class="text-decoration-none text-success">
+                                    {{ licenseHistogramStats.new_licenses|e }}
+                                  </a>
+                                {% else %}
+                                  <span class="text-success">{{ licenseHistogramStats.new_licenses|default(0)|e }}</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>{{ 'Deleted'|trans }}</td>
+                              <td>
+                                {% if licenseHistogramStats.deleted_licenses_url|default('') and licenseHistogramStats.deleted_licenses|default(0) > 0 %}
+                                  <a href="{{ licenseHistogramStats.deleted_licenses_url|e('html_attr') }}" class="text-decoration-none text-danger">
+                                    {{ licenseHistogramStats.deleted_licenses|e }}
+                                  </a>
+                                {% else %}
+                                  <span class="text-danger">{{ licenseHistogramStats.deleted_licenses|default(0)|e }}</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>{{ 'Modified'|trans }}</td>
+                              <td>
+                                {% if licenseHistogramStats.modified_licenses_url|default('') and licenseHistogramStats.modified_licenses|default(0) > 0 %}
+                                  <a href="{{ licenseHistogramStats.modified_licenses_url|e('html_attr') }}" class="text-decoration-none text-warning">
+                                    {{ licenseHistogramStats.modified_licenses|e }}
+                                  </a>
+                                {% else %}
+                                  <span class="text-warning">{{ licenseHistogramStats.modified_licenses|default(0)|e }}</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>{{ 'Unchanged'|trans }}</td>
+                              <td>
+                                {% if licenseHistogramStats.unchanged_licenses_url|default('') and licenseHistogramStats.unchanged_licenses|default(0) > 0 %}
+                                  <a href="{{ licenseHistogramStats.unchanged_licenses_url|e('html_attr') }}" class="text-decoration-none text-info">
+                                    {{ licenseHistogramStats.unchanged_licenses|e }}
+                                  </a>
+                                {% else %}
+                                  <span class="text-info">{{ licenseHistogramStats.unchanged_licenses|default(0)|e }}</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- License Comparison (Top Licenses) -->
+                <div class="card">
+                  <div class="card-header">
+                    <h6>{{ 'License Comparison (Top 10)'|trans }}</h6>
+                  </div>
+                  <div class="card-body p-0">
+                    <div style="max-height: 300px; overflow-y: auto;">
+                      <table class="table table-bordered table-sm w-100 mb-0">
+                        <thead class="sticky-top bg-light">
+                          <tr>
+                            <th>{{ 'License'|trans }}</th>
+                            <th>{{ 'Upload'|trans }}</th>
+                            <th>{{ 'Reuse'|trans }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in enhancedReuseLicenseStats|default([])|slice(0, 10) %}
+                          <tr>
+                            <td>{{ row.license|e }}</td>
+                            <td>
+                              {% if row.upload_files_url|default('') and row.upload_count|default(0) > 0 %}
+                                <a href="{{ row.upload_files_url|e('html_attr') }}" class="text-decoration-none">
+                                  {{ row.upload_count|e }}
+                                </a>
+                              {% else %}
+                                {{ row.upload_count|e }}
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% if row.reuse_files_url|default('') and row.reuse_count|default(0) > 0 %}
+                                <a href="{{ row.reuse_files_url|e('html_attr') }}" class="text-decoration-none">
+                                  {{ row.reuse_count|e }}
+                                </a>
+                              {% else %}
+                                {{ row.reuse_count|e }}
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Original View Tab (Content from original template) -->
+          <div class="tab-pane fade" id="pane-original" role="tabpanel">
+            <div class="row">
+              <div class="col-md-6">
+                <ul class="nav nav-tabs" id="enhanced-reuse-tabs-1" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link active" id="tab-histogram" data-toggle="tab" href="#pane-histogram" role="tab">
+                      {{ 'Histogram'|trans }}
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" id="tab-diff" data-toggle="tab" href="#pane-diff" role="tab">
+                      {{ 'Diff tree'|trans }}
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" id="tab-licenses" data-toggle="tab" href="#pane-licenses" role="tab">
+                      {{ 'License comparison'|trans }}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="tab-content border border-top-0 p-3" id="enhanced-reuse-tab-content">
+              <div class="tab-pane fade show active" id="pane-histogram" role="tabpanel">
+                <h5>{{ 'File Classification'|trans }}</h5>
+                <table id="enhanced-reuse-stats" class="table table-bordered table-striped table-sm w-100 mb-4">
+                  <thead>
+                    <tr>
+                      <th>{{ 'Type'|trans }}</th>
+                      <th>{{ 'Count'|trans }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for row in enhancedReuseStats|default([]) %}
+                    <tr>
+                      <td>{{ row.classification|e }}</td>
+                      <td>{{ row.total|e }}</td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+
+                <h5>{{ 'License Statistics'|trans }}</h5>
+                <table id="enhanced-reuse-license-stats" class="table table-bordered table-striped table-sm w-100 mb-4">
+                  <thead>
+                    <tr>
+                      <th>{{ 'Type'|trans }}</th>
+                      <th>{{ 'Count'|trans }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{{ 'New Licenses'|trans }}</td>
+                      <td>
+                        {% if licenseHistogramStats.new_licenses_url|default('') and licenseHistogramStats.new_licenses|default(0) > 0 %}
+                          <a href="{{ licenseHistogramStats.new_licenses_url|e('html_attr') }}" class="text-decoration-none text-success">
+                            {{ licenseHistogramStats.new_licenses|e }}
+                          </a>
+                        {% else %}
+                          <span class="text-success">{{ licenseHistogramStats.new_licenses|default(0)|e }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'Deleted Licenses'|trans }}</td>
+                      <td>
+                        {% if licenseHistogramStats.deleted_licenses_url|default('') and licenseHistogramStats.deleted_licenses|default(0) > 0 %}
+                          <a href="{{ licenseHistogramStats.deleted_licenses_url|e('html_attr') }}" class="text-decoration-none text-danger">
+                            {{ licenseHistogramStats.deleted_licenses|e }}
+                          </a>
+                        {% else %}
+                          <span class="text-danger">{{ licenseHistogramStats.deleted_licenses|default(0)|e }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'Modified Licenses'|trans }}</td>
+                      <td>
+                        {% if licenseHistogramStats.modified_licenses_url|default('') and licenseHistogramStats.modified_licenses|default(0) > 0 %}
+                          <a href="{{ licenseHistogramStats.modified_licenses_url|e('html_attr') }}" class="text-decoration-none text-warning">
+                            {{ licenseHistogramStats.modified_licenses|e }}
+                          </a>
+                        {% else %}
+                          <span class="text-warning">{{ licenseHistogramStats.modified_licenses|default(0)|e }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'Unchanged Licenses'|trans }}</td>
+                      <td>
+                        {% if licenseHistogramStats.unchanged_licenses_url|default('') and licenseHistogramStats.unchanged_licenses|default(0) > 0 %}
+                          <a href="{{ licenseHistogramStats.unchanged_licenses_url|e('html_attr') }}" class="text-decoration-none text-info">
+                            {{ licenseHistogramStats.unchanged_licenses|e }}
+                          </a>
+                        {% else %}
+                          <span class="text-info">{{ licenseHistogramStats.unchanged_licenses|default(0)|e }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="tab-pane fade" id="pane-diff" role="tabpanel">
+                <table id="enhanced-reuse-tree" class="table table-bordered table-striped table-sm w-100">
+                  <thead>
+                    <tr>
+                      <th>{{ 'File'|trans }}</th>
+                      <th>{{ 'Classification'|trans }}</th>
+                      <th>{{ 'License(upload)'|trans }}</th>
+                      <th>{{ 'License(reuse)'|trans }}</th>
+                      <th>{{ 'Status'|trans }}</th>
+                      <th>{{ 'Changed lines'|trans }}</th>
+                      <th>{{ 'Type'|trans }}</th>
+                      <th>{{ 'Risk'|trans }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for row in enhancedReuseDiffTree|default([]) %}
+                    <tr>
+                      <td>
+                        {% if row.file_href|default('') %}
+                          <a href="{{ row.file_href|e('html_attr') }}">{{ row.file_name|e }}</a>
+                        {% else %}
+                          {{ row.file_name|e }}
+                        {% endif %}
+                      </td>
+                      <td>{{ row.classification|e }}</td>
+                      <td>{{ row.upload_license|default('')|e }}</td>
+                      <td>{{ row.reuse_license|default('')|e }}</td>
+                      <td>
+                        {% set status = row.license_status|default('') %}
+                        {% if status == 'Added' %}
+                          <span class="badge badge-success">{{ 'Added'|trans }}</span>
+                        {% elseif status == 'Deleted' %}
+                          <span class="badge badge-danger">{{ 'Deleted'|trans }}</span>
+                        {% elseif status == 'Modified' %}
+                          <span class="badge badge-warning">{{ 'Modified'|trans }}</span>
+                        {% elseif status == 'Unchanged' %}
+                          <span class="badge badge-info">{{ 'Unchanged'|trans }}</span>
+                        {% else %}
+                          <span class="badge badge-secondary">{{ status|e }}</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if row.changed_lines|default('') > 0 and row.upload_pfile_fk|default('') > 0 and row.reused_pfile_fk|default('') > 0 %}
+                          <a href="{{ '?mod=enhanced_reuse_diff_view&upload=' ~ uploadId ~ '&item=' ~ itemId ~ '&currentPfile=' ~ row.upload_pfile_fk ~ '&reusedPfile=' ~ row.reused_pfile_fk }}">{{ row.changed_lines|e }}</a>
+                        {% else %}
+                          {{ row.changed_lines|default('')|e }}
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% set change_type = row.change_type|default('mixed') %}
+                        {% if change_type == 'License text' %}
+                          <span class="badge badge-danger">{{ 'License text'|trans }}</span>
+                        {% elseif change_type == 'Copyright' %}
+                          <span class="badge badge-warning">{{ 'Copyright'|trans }}</span>
+                        {% elseif change_type == 'code' %}
+                          <span class="badge badge-primary">{{ 'Code'|trans }}</span>
+                        {% elseif change_type == 'comment' %}
+                          <span class="badge badge-info">{{ 'Comment'|trans }}</span>
+                        {% elseif change_type == 'Config' %}
+                          <span class="badge badge-secondary">{{ 'Config'|trans }}</span>
+                        {% else %}
+                          <span class="badge badge-light">{{ 'Mixed'|trans }}</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% set rl = row.risk_level|default('') %}
+                        {% if rl == 'CRITICAL' %}
+                          <span class="badge badge-danger">{{ rl|e }}</span>
+                        {% elseif rl == 'HIGH' %}
+                          <span class="badge badge-warning">{{ rl|e }}</span>
+                        {% elseif rl == 'MEDIUM' %}
+                          <span class="badge badge-info">{{ rl|e }}</span>
+                        {% elseif rl == 'LOW' %}
+                          <span class="badge badge-success">{{ rl|e }}</span>
+                        {% else %}
+                          <span class="badge badge-secondary">{{ rl|e }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="tab-pane fade" id="pane-licenses" role="tabpanel">
+                <h5>{{ 'License Comparison'|trans }}</h5>
+                <table id="enhanced-reuse-license-stats" class="table table-bordered table-striped table-sm w-100">
+                  <thead>
+                    <tr>
+                      <th>{{ 'License'|trans }}</th>
+                      <th>{{ 'Upload'|trans }}</th>
+                      <th>{{ 'Reuse'|trans }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for row in enhancedReuseLicenseStats|default([]) %}
+                    <tr>
+                      <td>{{ row.license|e }}</td>
+                      <td>
+                        {% if row.upload_files_url|default('') and row.upload_count|default(0) > 0 %}
+                          <a href="{{ row.upload_files_url|e('html_attr') }}" class="text-decoration-none">
+                            {{ row.upload_count|e }}
+                          </a>
+                        {% else %}
+                          {{ row.upload_count|e }}
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if row.reuse_files_url|default('') and row.reuse_count|default(0) > 0 %}
+                          <a href="{{ row.reuse_files_url|e('html_attr') }}" class="text-decoration-none">
+                            {{ row.reuse_count|e }}
+                          </a>
+                        {% else %}
+                          {{ row.reuse_count|e }}
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{# SPDX-FileCopyrightText: © 2026 Fossology contributors
+
+SPDX-License-Identifier: GPL-2.0-only
+#}
+{% extends "include/base.html.twig" %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <h3>{{ 'Enhanced Reuse Analysis - Filtered Results'|trans }}</h3>
+        
+        <!-- Filter Information -->
+        <div class="alert alert-info mb-3">
+          <h5>{{ 'Filter Applied:'|trans }}</h5>
+          <p><strong>{{ 'Type:'|trans }}</strong> {{ filterType|e }}</p>
+          {% if filterLicenses %}
+            <p><strong>{{ 'Licenses:'|trans }}</strong> {{ filterLicenses|join(', ')|e }}</p>
+          {% endif %}
+          <a href="?mod=enhanced_reuse_analysis&upload={{ uploadId }}&item={{ itemId }}" class="btn btn-sm btn-primary">{{ 'Clear Filter'|trans }}</a>
+        </div>
+
+        <!-- Filtered Diff Tree -->
+        <div class="card">
+          <div class="card-header">
+            <h5>{{ 'Files with Selected License Status'|trans }}</h5>
+          </div>
+          <div class="card-body">
+            {% if enhancedReuseDiffTree|default([]) %}
+              <table id="enhanced-reuse-tree" class="table table-bordered table-striped table-sm w-100">
+                <thead>
+                  <tr>
+                    <th>{{ 'File'|trans }}</th>
+                    <th>{{ 'Classification'|trans }}</th>
+                    <th>{{ 'License(upload)'|trans }}</th>
+                    <th>{{ 'License(reuse)'|trans }}</th>
+                    <th>{{ 'Status'|trans }}</th>
+                    <th>{{ 'Changed lines'|trans }}</th>
+                    <th>{{ 'Type'|trans }}</th>
+                    <th>{{ 'Risk'|trans }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for row in enhancedReuseDiffTree|default([]) %}
+                  <tr>
+                    <td>
+                      {% if row.file_href|default('') %}
+                        <a href="{{ row.file_href|e('html_attr') }}">{{ row.file_name|e }}</a>
+                      {% else %}
+                        {{ row.file_name|e }}
+                      {% endif %}
+                    </td>
+                    <td>{{ row.classification|e }}</td>
+                    <td>{{ row.upload_license|default('')|e }}</td>
+                    <td>{{ row.reuse_license|default('')|e }}</td>
+                    <td>
+                      {% set status = row.license_status|default('') %}
+                      {% if status == 'Added' %}
+                        <span class="badge badge-success">{{ 'Added'|trans }}</span>
+                      {% elseif status == 'Deleted' %}
+                        <span class="badge badge-danger">{{ 'Deleted'|trans }}</span>
+                      {% elseif status == 'Modified' %}
+                        <span class="badge badge-warning">{{ 'Modified'|trans }}</span>
+                      {% elseif status == 'Unchanged' %}
+                        <span class="badge badge-info">{{ 'Unchanged'|trans }}</span>
+                      {% else %}
+                        <span class="badge badge-secondary">{{ status|e }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if row.changed_lines|default('') > 0 and row.upload_pfile_fk|default('') > 0 and row.reused_pfile_fk|default('') > 0 %}
+                        <a href="{{ '?mod=enhanced_reuse_diff_view&upload=' ~ uploadId ~ '&item=' ~ itemId ~ '&currentPfile=' ~ row.upload_pfile_fk ~ '&reusedPfile=' ~ row.reused_pfile_fk }}">{{ row.changed_lines|e }}</a>
+                      {% else %}
+                        {{ row.changed_lines|default('')|e }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% set change_type = row.change_type|default('mixed') %}
+                      {% if change_type == 'License text' %}
+                        <span class="badge badge-danger">{{ 'License text'|trans }}</span>
+                      {% elseif change_type == 'Copyright' %}
+                        <span class="badge badge-warning">{{ 'Copyright'|trans }}</span>
+                      {% elseif change_type == 'code' %}
+                        <span class="badge badge-primary">{{ 'Code'|trans }}</span>
+                      {% elseif change_type == 'comment' %}
+                        <span class="badge badge-info">{{ 'Comment'|trans }}</span>
+                      {% elseif change_type == 'Config' %}
+                        <span class="badge badge-secondary">{{ 'Config'|trans }}</span>
+                      {% else %}
+                        <span class="badge badge-light">{{ 'Mixed'|trans }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% set rl = row.risk_level|default('') %}
+                      {% if rl == 'CRITICAL' %}
+                        <span class="badge badge-danger">{{ rl|e }}</span>
+                      {% elseif rl == 'HIGH' %}
+                        <span class="badge badge-warning">{{ rl|e }}</span>
+                      {% elseif rl == 'MEDIUM' %}
+                        <span class="badge badge-info">{{ rl|e }}</span>
+                      {% elseif rl == 'LOW' %}
+                        <span class="badge badge-success">{{ rl|e }}</span>
+                      {% else %}
+                        <span class="badge badge-secondary">{{ rl|e }}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class="alert alert-warning">
+                {{ 'No files found matching the selected license filter.'|trans }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

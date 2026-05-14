@@ -1,6 +1,6 @@
 # Enhanced Reuse Analysis
 
-This module adds an **enhancedreuser** scheduler agent and a web UI (**Enhanced Reuse Analysis**) that summarizes reuse comparison results: classification histogram, per-file diff/risk, and license comparison between the current upload and the reused upload.
+This module adds an **enhancedreuser** scheduler agent and a web UI (**Reuse Analysis**) that provides comprehensive reuse comparison results: classification histogram, per-file diff/risk, detailed license comparison, and actionable insights between the current upload and the reused upload.
 
 SPDX-License-Identifier: GPL-2.0-only  
 SPDX-FileCopyrightText: © 2026 Fossology contributors
@@ -9,8 +9,29 @@ SPDX-FileCopyrightText: © 2026 Fossology contributors
 
 1. **Runs after normal reuse** — When you schedule reuse with **Enhanced reuse** enabled, the PHP **reuser** job queues **enhancedreuser** only after the concrete **reuser** jobqueue step (`jq_pk`), so copy/reuse data exists before analysis.
 2. **Writes analysis to the database** — The C++ agent inserts rows into `enhanced_reuse_*` tables (see `src/www/ui/core-schema.dat`).
-3. **Surfaces results in the UI** — From Browse or License view, open **Enhanced Reuse Analysis** (`mod=enhanced_reuse_analysis`) for the current upload and folder. Tabs show histogram, diff tree, and license comparison (server-rendered Twig; no browser JWT required).
+3. **Surfaces results in the UI** — From Browse or License view, open **Reuse Analysis** (`mod=enhanced_reuse_analysis`) for the current upload and folder. Tabs show histogram, diff tree, and detailed license comparison (server-rendered Twig; no browser JWT required).
 4. **Optional REST** — JSON under `/repo/api/v{1|2}/uploads/{uploadId}/enhanced-reuse/...` (authentication as for the rest of the FOSSology API).
+
+## Key Features
+
+### 🔍 **Detailed License Comparison**
+- **Side-by-side analysis** with upload vs reuse license counts
+- **Smart status indicators** showing license differences (±X)
+- **Action-oriented recommendations** (OK, Review, Added, Missing)
+- **Clickable counts** that link to detailed file listings
+- **Color-coded visualization** for quick risk assessment
+
+### 📊 **Improved Risk Classification**
+- **Magnitude-based risk assessment** considering actual change impact
+- **Granular thresholds**: ≤20 lines (LOW), 20-100 lines (MEDIUM), >100 lines (HIGH)
+- **License conflict detection** for CRITICAL risk scenarios
+- **Intelligent modification classification** (MINOR, MAJOR, LICENSE_CHANGED, CONFLICT)
+
+### 📈 **Enhanced User Experience**
+- **Clean, modern interface** with redundant titles removed
+- **Tabbed navigation** for organized data presentation
+- **Responsive design** with Bootstrap styling
+- **Intuitive icons and visual indicators** for quick comprehension
 
 ## Alignment with the reuser agent
 
@@ -48,14 +69,55 @@ In `src/reuser/ui/agent-reuser.php`, when the user selects **reuseEnhanced** in 
 
 `EnhancedReuseDao::getLicenseComparison()` returns stored license rows when present; otherwise it builds rows from `enhanced_reuse_file_comparison` pairs (up to 3000), using the same effective license text rules as the agent: **clearing conclusions only** via `PfileDao::getConclusions` (no `license_file` scanner fallback). `NOASSERTION` is shown as empty; explicit **NONE** stays `NONE`.
 
-## Web UI: license comparison and file links
+## Web UI: Enhanced License Comparison and File Links
 
-On the **License comparison** tab, each **File** name is a link when an `uploadtree_pk` can be resolved for this upload and the row’s **upload** pfile:
+### **Detailed License Breakdown View**
+The **License comparison** tab now provides a comprehensive side-by-side analysis:
+
+```
+┌─────────────┬─────────┬─────────┬───────────┬─────────────┐
+│   LICENSE   │ UPLOAD  │ REUSE   │   STATUS   │    ACTION   │
+├─────────────┼─────────┼─────────┼───────────┼─────────────┤
+│ GPL-3.0     │ 234     │ 189     │ ⚠️  -45    │ Review      │
+│ MIT         │ 156     │ 142     │ ⚠️  -14    │ Review      │
+│ BSD         │ 54      │ 51      │ ✅  -3     │ ✅ OK       │
+│ Apache-2.0  │ 89      │ 0       │ ❌  -89    │ ⚠️  Missing  │
+│ LGPL-2.1    │ 0       │ 23      │ ❌  +23    │ ⚠️  Added   │
+└─────────────┴─────────┴─────────┴───────────┴─────────────┘
+```
+
+### **Smart Status Logic**
+- **✅ 0**: Perfect match (same count)
+- **✅ ±1-5**: Minor differences (acceptable)
+- **⚠️ ±6+**: Significant differences (needs review)
+- **❌ +X**: License only in reuse package
+- **❌ -X**: License only in upload package
+
+### **Action-Oriented Recommendations**
+- **✅ OK**: No action needed
+- **⚠️ Review**: Significant differences to investigate
+- **⚠️ Added**: New license in reuse package
+- **⚠️ Missing**: License removed in reuse package
+
+### **Clickable File Listings**
+Both **Upload** and **Reuse** count columns are clickable links that redirect to FOSSology's `license_list_files` module, showing detailed file listings for each specific license:
+
+- **URL pattern**: `?mod=license_list_files&item=UPLOADTREE_PK&lic=LicenseName`
+- **Root uploadtree resolution**: Automatically finds root folder for proper browsing
+- **Zero counts**: Not clickable (no files to show)
+
+### **Visual Improvements**
+- **Color-coded differences**: Green (+X), Red (-X), Gray (0)
+- **Bold license names** for better readability
+- **Bootstrap styling** with responsive design
+- **Intuitive icons** for quick status recognition
+
+### **File Name Links**
+Each file name in the **Diff tree** tab is a link when an `uploadtree_pk` can be resolved:
 
 - `UploadDao::getUploadtreeIdFromPfile($uploadId, $uploadPfileFk)`
-- URL pattern matches License Browser file links: **`mod=view-license`** with **`upload`** and **`item`** query parameters.
-
-If no tree row exists (or pfile is missing), the name stays plain text. `getUploadtreeIdFromPfile` returns **0** when there is no matching row (safe on empty query results).
+- URL pattern: **`mod=view-license`** with **`upload`** and **`item`** query parameters
+- Safe fallback to plain text when no tree row exists
 
 ## REST endpoints
 
@@ -80,5 +142,37 @@ Responses are **404** if no analysis exists for that upload in the current group
 
 1. Schedule **reuse** from the UI or API, select a package to reuse, and enable **Enhanced reuse** (`reuseEnhanced` / `reuse_enhanced` in API models where applicable).
 2. Wait for **reuser** and **enhancedreuser** to finish.
-3. Open the upload in Browse or License view, choose **Enhanced Reuse Analysis** from the action menu.
-4. Use **Histogram**, **Diff tree**, and **License comparison**; click a file name in **License comparison** to open the standard **view-license** page for that file when a link is available.
+3. Open the upload in Browse or License view, choose **Reuse Analysis** from the action menu.
+4. Use the three main tabs:
+   - **📊 Histogram**: File classification overview
+   - **🌳 Diff tree**: Detailed file-by-file comparison with risk assessment
+   - **🔍 License comparison**: Detailed license breakdown with actionable insights
+5. **Interactive features**:
+   - Click license counts to view file listings for specific licenses
+   - Review status indicators to identify license compliance issues
+   - Use action recommendations to prioritize review tasks
+
+## Recent Improvements (2026)
+
+### **Risk Assessment Enhancement**
+- **Magnitude-based classification**: Risk levels now consider actual change impact (number of changed lines)
+- **Granular thresholds**: LOW (≤20 lines), MEDIUM (20-100 lines), HIGH (>100 lines)
+- **Improved accuracy**: Better correlation between change size and actual risk
+
+### **User Interface Improvements**
+- **Cleaner design**: Removed redundant page titles for better UX
+- **Enhanced license comparison**: Side-by-side view with status indicators and action recommendations
+- **Better navigation**: Tabbed interface with clear visual hierarchy
+- **Responsive design**: Optimized for different screen sizes
+
+### **License Analysis Features**
+- **Smart difference calculation**: Automatic detection of license count variations
+- **Actionable insights**: Clear recommendations (OK, Review, Added, Missing)
+- **Visual indicators**: Color-coded status for quick comprehension
+- **File drill-down**: Clickable counts leading to detailed file listings
+
+### **Technical Improvements**
+- **Database optimization**: More efficient license comparison queries
+- **Better error handling**: Graceful fallbacks for missing data
+- **Enhanced URL generation**: Correct uploadtree_pk resolution for file browsing
+- **Improved performance**: Optimized SQL queries and data processing
