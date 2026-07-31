@@ -22,6 +22,16 @@
               &larr; {{ 'Back to Reuse Compare'|trans }}
             </a>
 
+            {% if stepperTotal > 0 %}
+              <a href="{{ stepperPrev ?: '#' }}" class="btn btn-default btn-sm{% if not stepperPrev %} disabled{% endif %}" title="{{ 'Previous modified file'|trans }}">
+                &laquo; {{ 'Prev Modified'|trans }}
+              </a>
+              <span class="small text-muted">{{ stepperPosition }} {{ 'of'|trans }} {{ stepperTotal }}</span>
+              <a href="{{ stepperNext ?: '#' }}" class="btn btn-default btn-sm{% if not stepperNext %} disabled{% endif %}" title="{{ 'Next modified file'|trans }}">
+                {{ 'Next Modified'|trans }} &raquo;
+              </a>
+            {% endif %}
+
             <button class="legendHider btn btn-default btn-sm">
               {{ 'Hide Legend'|trans }}
             </button>

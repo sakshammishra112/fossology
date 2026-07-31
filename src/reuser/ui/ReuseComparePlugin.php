@@ -135,6 +135,7 @@ class ReuseComparePlugin extends DefaultPlugin
     $reuseRootRgt = $reuseRootRow['rgt'] ?? 0;
     $licenseMapReusePfiles = !empty($reuseRootRow) ?
       $this->batchGetLicensesForUpload($reuseUploadId, $reuseRootLft, $reuseRootRgt, $reuseTableName) : [];
+    $riskMap = $this->getLicenseRiskMap();
 
     $uploadPathUri = Traceback_uri();
     $licenseMapUpload = [];
@@ -147,10 +148,9 @@ class ReuseComparePlugin extends DefaultPlugin
       $row = $this->buildDiffRow($child1, $child2, $uploadId, $reuseUploadId,
         $tableName, $reuseTableName, $uploadPathUri);
 
-      $stats[$row['classification']]++;
-      $diffTree[] = $row;
-
       /* Collect licenses for comparison (from pre-fetched batch) */
+      $lics1 = [];
+      $lics2 = [];
       if ($child1 && !empty($child1['pfile_fk'])) {
         $lics1 = $licenseMapUploadPfiles[(int)$child1['pfile_fk']] ?? [];
         foreach ($lics1 as $lic) {
@@ -165,6 +165,13 @@ class ReuseComparePlugin extends DefaultPlugin
             $licenseMapReuse[$lic] + 1 : 1;
         }
       }
+
+      if ($row['classification'] === 'MODIFIED') {
+        $row = array_merge($row, $this->buildRiskInfo($lics1, $lics2, $riskMap));
+      }
+
+      $stats[$row['classification']]++;
+      $diffTree[] = $row;
     }
 
     /* Build license comparison stats */
@@ -345,6 +352,58 @@ class ReuseComparePlugin extends DefaultPlugin
     }
     $this->dbManager->freeResult($res);
     return $map;
+  }
+
+  /**
+   * Get the risk level (rf_risk, 0-5) of every known license, keyed by
+   * shortname, to allow flagging risk changes on MODIFIED files.
+   *
+   * @return array<string,int> Map of rf_shortname => rf_risk
+   */
+  private function getLicenseRiskMap()
+  {
+    $sql = "SELECT rf_shortname, rf_risk FROM license_ref
+            WHERE rf_shortname IS NOT NULL";
+    $map = [];
+    foreach ($this->dbManager->getRows($sql, [], __METHOD__) as $row) {
+      $map[$row['rf_shortname']] = (int)$row['rf_risk'];
+    }
+    return $map;
+  }
+
+  /**
+   * Compare the highest license risk level on each side of a MODIFIED file
+   * pair to determine whether the change made the file riskier.
+   *
+   * @param string[] $lics1 License shortnames found in the upload file
+   * @param string[] $lics2 License shortnames found in the reused file
+   * @param array<string,int> $riskMap Map of rf_shortname => rf_risk
+   * @return array{riskLevel:int,reuseRiskLevel:int,riskDirection:string}
+   */
+  private function buildRiskInfo($lics1, $lics2, $riskMap)
+  {
+    $riskLevel = 0;
+    foreach ($lics1 as $lic) {
+      $riskLevel = max($riskLevel, $riskMap[$lic] ?? 0);
+    }
+    $reuseRiskLevel = 0;
+    foreach ($lics2 as $lic) {
+      $reuseRiskLevel = max($reuseRiskLevel, $riskMap[$lic] ?? 0);
+    }
+
+    if ($riskLevel > $reuseRiskLevel) {
+      $riskDirection = 'up';
+    } elseif ($riskLevel < $reuseRiskLevel) {
+      $riskDirection = 'down';
+    } else {
+      $riskDirection = 'same';
+    }
+
+    return [
+      'riskLevel' => $riskLevel,
+      'reuseRiskLevel' => $reuseRiskLevel,
+      'riskDirection' => $riskDirection,
+    ];
   }
 
   /**

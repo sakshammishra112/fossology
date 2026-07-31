@@ -62,7 +62,9 @@
           </thead>
           <tbody>
           {% for row in diffTree %}
-            <tr class="{{ cycle(['odd', 'even'], loop.index0) }}" data-status="{{ row.classification }}">
+            <tr class="{{ cycle(['odd', 'even'], loop.index0) }}{% if row.riskDirection == 'up' %} risk-increased{% endif %}"
+                data-status="{{ row.classification }}"
+                {% if row.riskDirection == 'up' %}style="border-left:4px solid #e95850;"{% endif %}>
               <td class="td-upload">
                 {% if row.upload_file_name %}
                   {% if row.upload_href %}
@@ -91,6 +93,17 @@
                   <span class="text-success" style="background:#d4edda;padding:0 6px;font-weight:600;">{{ 'Identical'|trans }}</span>
                 {% elseif s == 'MODIFIED' %}
                   <span class="text-warning" style="background:#fff3cd;padding:0 6px;font-weight:600;">{{ 'Modified'|trans }}</span>
+                  {% if row.riskDirection == 'up' %}
+                    <span class="riskLevelBox riskLevelBackgroud{{ row.riskLevel }}" style="display:inline-block;height:auto;line-height:normal;padding:1px 5px;font-size:11px;"
+                          title="{{ 'License risk increased from level'|trans }} {{ row.reuseRiskLevel }} {{ 'to'|trans }} {{ row.riskLevel }}">
+                      &#9650; {{ row.riskLevel }}
+                    </span>
+                  {% elseif row.riskDirection == 'down' %}
+                    <span class="riskLevelBox riskLevelBackgroud{{ row.riskLevel }}" style="display:inline-block;height:auto;line-height:normal;padding:1px 5px;font-size:11px;"
+                          title="{{ 'License risk decreased from level'|trans }} {{ row.reuseRiskLevel }} {{ 'to'|trans }} {{ row.riskLevel }}">
+                      &#9660; {{ row.riskLevel }}
+                    </span>
+                  {% endif %}
                 {% elseif s == 'NEW' %}
                   <span class="text-info" style="background:#d1ecf1;padding:0 6px;font-weight:600;">{{ 'New'|trans }}</span>
                 {% elseif s == 'REMOVED' %}

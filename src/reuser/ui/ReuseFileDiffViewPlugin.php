@@ -155,6 +155,8 @@ class ReuseFileDiffViewPlugin extends DefaultPlugin
     $micromenu = Dir2Browse("license", $fileItem, null, 0, "View",
       -1, '', '', $tableName);
 
+    $stepper = $this->buildStepper($uploadId, $item, $reuseId, $currentPfile, $reusedPfile);
+
     $vars = [
       "uploadId" => $uploadId,
       "item" => $item,
@@ -165,6 +167,10 @@ class ReuseFileDiffViewPlugin extends DefaultPlugin
       "allLicenses" => $allLicenses,
       "pageMenu" => $micromenu,
       "micromenu" => $micromenu,
+      "stepperPrev" => $stepper['prev'],
+      "stepperNext" => $stepper['next'],
+      "stepperPosition" => $stepper['position'],
+      "stepperTotal" => $stepper['total'],
     ];
 
     $defaultVars = $this->mergeWithDefault([]);
@@ -411,6 +417,127 @@ class ReuseFileDiffViewPlugin extends DefaultPlugin
     $this->dbManager->freeResult($res);
 
     return [array_keys($added), array_keys($removed)];
+  }
+
+  /**
+   * Build the prev/next navigation links to step through all MODIFIED
+   * file pairs (same ordering as the Reuse Compare list) without going
+   * back to the list view.
+   *
+   * @param int $uploadId
+   * @param int $item Root item id of the compared subtree
+   * @param int $reuseId Reused upload id
+   * @param int $currentPfile pfile_fk of the current file being viewed
+   * @param int $reusedPfile pfile_fk of the reused file being viewed
+   * @return array{prev:?string,next:?string,position:int,total:int}
+   */
+  private function buildStepper($uploadId, $item, $reuseId, $currentPfile, $reusedPfile)
+  {
+    $result = ['prev' => null, 'next' => null, 'position' => 0, 'total' => 0];
+    $pairs = $this->getOrderedModifiedPairs($uploadId, $item, $reuseId);
+    $result['total'] = count($pairs);
+
+    $currentIndex = -1;
+    foreach ($pairs as $idx => $pair) {
+      if ($pair['currentPfile'] == $currentPfile && $pair['reusedPfile'] == $reusedPfile) {
+        $currentIndex = $idx;
+        break;
+      }
+    }
+    if ($currentIndex === -1) {
+      return $result;
+    }
+    $result['position'] = $currentIndex + 1;
+
+    $baseUri = Traceback_uri() . "?mod=reusediffview&upload=$uploadId&item=$item&reuse=$reuseId";
+    if ($currentIndex > 0) {
+      $prevPair = $pairs[$currentIndex - 1];
+      $result['prev'] = $baseUri . "&currentPfile={$prevPair['currentPfile']}&reusedPfile={$prevPair['reusedPfile']}";
+    }
+    if ($currentIndex < count($pairs) - 1) {
+      $nextPair = $pairs[$currentIndex + 1];
+      $result['next'] = $baseUri . "&currentPfile={$nextPair['currentPfile']}&reusedPfile={$nextPair['reusedPfile']}";
+    }
+    return $result;
+  }
+
+  /**
+   * Recompute the MODIFIED file pairs (upload pfile vs. reused pfile) for a
+   * compared subtree, in the same order shown by ReuseComparePlugin.
+   *
+   * @param int $uploadId
+   * @param int $item Root item id of the compared subtree
+   * @param int $reuseUploadId Reused upload id
+   * @return array[] List of ['currentPfile' => int, 'reusedPfile' => int]
+   */
+  private function getOrderedModifiedPairs($uploadId, $item, $reuseUploadId)
+  {
+    if (empty($uploadId) || empty($item) || empty($reuseUploadId)) {
+      return [];
+    }
+
+    $tableName = $this->uploadDao->getUploadtreeTableName($uploadId);
+    $itemRow = $this->uploadDao->getUploadEntry($item, $tableName);
+    if (empty($itemRow)) {
+      return [];
+    }
+
+    $reuseTableName = $this->uploadDao->getUploadtreeTableName($reuseUploadId);
+    $reuseRootPk = $this->uploadDao->getUploadParent($reuseUploadId);
+    $reuseRootRow = $this->uploadDao->getUploadEntry($reuseRootPk, $reuseTableName);
+
+    $children1 = $this->getAllNonArtifactDescendants($itemRow, $tableName);
+    $children2 = !empty($reuseRootRow) ?
+      $this->getAllNonArtifactDescendants($reuseRootRow, $reuseTableName) : [];
+    FuzzyName($children1);
+    FuzzyName($children2);
+    $master = MakeMaster($children1, $children2);
+
+    $pairs = [];
+    foreach ($master as $pair) {
+      $child1 = !empty($pair[1]) ? $pair[1] : null;
+      $child2 = !empty($pair[2]) ? $pair[2] : null;
+      if ($child1 && $child2 && $child1['pfile_fk'] != $child2['pfile_fk']) {
+        $pairs[] = [
+          'currentPfile' => (int)$child1['pfile_fk'],
+          'reusedPfile' => (int)$child2['pfile_fk'],
+        ];
+      }
+    }
+    return $pairs;
+  }
+
+  /**
+   * Get all non-artifact descendant files under an upload tree node using
+   * the lft/rgt nested-set range (mirrors ReuseComparePlugin's helper).
+   *
+   * @param array $itemRow Row from uploadtree table
+   * @param string $tableName
+   * @return array
+   */
+  private function getAllNonArtifactDescendants($itemRow, $tableName)
+  {
+    $lft = (int)$itemRow['lft'];
+    $rgt = (int)$itemRow['rgt'];
+    $pk = (int)$itemRow['uploadtree_pk'];
+    $uploadFk = (int)$itemRow['upload_fk'];
+
+    $sql = "SELECT ut.*, pfile_size, pfile_mimetypefk
+            FROM $tableName ut
+            LEFT JOIN pfile ON (pfile_pk = ut.pfile_fk)
+            WHERE ut.upload_fk = $1
+              AND ut.lft BETWEEN $2 AND $3
+              AND ut.uploadtree_pk != $4
+              AND ut.ufile_mode & (3<<28) = 0
+            ORDER BY ut.lft";
+    $this->dbManager->prepare($stmt = __METHOD__ . ".$tableName", $sql);
+    $res = $this->dbManager->execute($stmt, [$uploadFk, $lft, $rgt, $pk]);
+    $children = [];
+    while ($row = $this->dbManager->fetchArray($res)) {
+      $children[] = $row;
+    }
+    $this->dbManager->freeResult($res);
+    return $children;
   }
 }
 
